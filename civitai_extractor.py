@@ -16,6 +16,7 @@ civitai_selectors = {
     'stepsHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div:nth-child(3) > div > div.mantine-Slider-root.flex-1.mantine-15k342w > input[type=hidden]",
     'stepsTextInput': "#mantine-rj"
 }
+
 civitai_generation_url = "https://civitai.com/generate"
 
 # Global variables
@@ -43,8 +44,8 @@ async def lifespan(app: FastAPI):
 
     civitai_page = await context.new_page()
 
-    # ✅ Apply stealth before anything else
-    await stealth_async(civitai_page)
+    # ✅ Ensure opts is defined to prevent ReferenceError
+    await civitai_page.add_init_script("window.opts = {};")
 
     # ✅ Set auth headers (if required)
     await civitai_page.set_extra_http_headers({
@@ -53,10 +54,13 @@ async def lifespan(app: FastAPI):
 
     await civitai_page.goto(civitai_generation_url)
 
-    # ✅ Ensure React fully loads before interaction
-    await civitai_page.wait_for_load_state("domcontentloaded")  # Wait for HTML
-    await civitai_page.wait_for_load_state("networkidle")  # Wait for API calls
-    await asyncio.sleep(3)  # Give React extra time to hydrate
+    # ✅ Ensure React fully loads before injecting scripts
+    await civitai_page.wait_for_selector("#__next", timeout=15000)  # Wait for Next.js root
+    await civitai_page.wait_for_load_state("networkidle")  # Ensure all requests finish
+    await asyncio.sleep(3)  # Give React extra time
+
+    # ✅ Apply stealth AFTER page has fully loaded
+    await stealth_async(civitai_page)
 
     print("✅ Browser running with anti-bot protections")
     yield
