@@ -6,7 +6,7 @@ from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
 import asyncio
 
-civitai_selectors = {
+civitai_selectors: dict[str, str] = {
     'positivePromptArea': "#input_prompt",
     'negativePromptArea': "#input_negativePrompt",
     'cfgScaleHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div:nth-child(1) > div > div.mantine-Slider-root.flex-1.mantine-15k342w > input[type=hidden]",
@@ -17,7 +17,8 @@ civitai_selectors = {
     'stepsTextInput': "#mantine-rj"
 }
 
-civitai_generation_url = "https://civitai.com/generate"
+civitai_generation_url: str = "https://civitai.com/generate"
+# adguard_mails_page_url: str = "https://adguard.com/fr/adguard-temp-mail/overview.html"
 
 # Global variables
 browser = None
@@ -56,8 +57,13 @@ async def lifespan(app: FastAPI):
 
     # ✅ Ensure React fully loads before injecting scripts
     await civitai_page.wait_for_selector("#__next", timeout=15000)  # Wait for Next.js root
-    await civitai_page.wait_for_load_state("networkidle")  # Ensure all requests finish
-    await asyncio.sleep(3)  # Give React extra time
+
+    try:
+        await civitai_page.wait_for_load_state("domcontentloaded", timeout=15000)  # Avoids networkidle timeout
+    except Exception:
+        print("⚠️ Warning: Page load state took too long, continuing anyway.")
+
+    await asyncio.sleep(5)  # Ensure JavaScript finishes executing
 
     # ✅ Apply stealth AFTER page has fully loaded
     await stealth_async(civitai_page)
