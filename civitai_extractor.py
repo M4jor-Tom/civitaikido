@@ -5,7 +5,7 @@ from playwright.async_api import async_playwright
 from playwright_stealth import stealth
 from contextlib import asynccontextmanager
 
-adguard_mail_selector = '#app > main > div > section.address > div > div > div > button.address__copy > span.address__copy-text'
+# adguard_mail_selector = '#app > main > div > section.address > div > div > div > button.address__copy > span.address__copy-text'
 civitai_selectors = {
     'positivePromptArea': "#input_prompt",
     'negativePromptArea': "#input_negativePrompt",
@@ -17,7 +17,7 @@ civitai_selectors = {
     'stepsTextInput': "#mantine-rj"
 }
 civitai_generation_url = "https://civitai.com/generate"
-adguard_page_url = "https://adguard.com/fr/adguard-temp-mail/overview.html"
+# adguard_page_url = "https://adguard.com/fr/adguard-temp-mail/overview.html"
 
 # Global variables
 browser = None
@@ -41,13 +41,13 @@ async def lifespan(app: FastAPI):
     )
 
     civitai_page = await context.new_page()
-    adguard_page = await context.new_page()
+    # adguard_page = await context.new_page()
 
-    await stealth(civitai_page)
-    await stealth(adguard_page)
+    stealth.stealth_sync(civitai_page)
+    # stealth.stealth_sync(adguard_page)
 
     await civitai_page.goto(civitai_generation_url)
-    await adguard_page.goto(adguard_page_url)
+    # await adguard_page.goto(adguard_page_url)
 
     print("✅ Browser running with anti-bot protections")
     yield
