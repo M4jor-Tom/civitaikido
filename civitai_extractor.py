@@ -2,8 +2,9 @@
 
 from fastapi import FastAPI
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth
+from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
+import asyncio
 
 # adguard_mail_selector = '#app > main > div > section.address > div > div > div > button.address__copy > span.address__copy-text'
 civitai_selectors = {
@@ -35,7 +36,7 @@ async def lifespan(app: FastAPI):
 
     context = await browser.new_context(
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                   "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         locale="en-US",
         viewport={"width": 1920, "height": 1080},
         java_script_enabled=True,  # Keep JS enabled
@@ -45,13 +46,27 @@ async def lifespan(app: FastAPI):
     )
 
     civitai_page = await context.new_page()
-    # adguard_page = await context.new_page()
 
-    await stealth.stealth_async(civitai_page)
-    # stealth.stealth_sync(adguard_page)
+    # ✅ Fix: Define 'opts' before stealth
+    await civitai_page.add_init_script("const opts = {};")
+    await stealth_async(civitai_page)
+
+    # ✅ Set auth headers (if required)
+    await civitai_page.set_extra_http_headers({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    })
 
     await civitai_page.goto(civitai_generation_url)
-    # await adguard_page.goto(adguard_page_url)
+
+    # ✅ Fix: Wait for page load using a reliable selector
+    try:
+        await civitai_page.wait_for_selector("body", timeout=15000)
+        print("✅ Page loaded successfully!")
+    except Exception as e:
+        print(f"⚠️ Warning: Page may not have fully loaded: {e}")
+
+    await civitai_page.wait_for_load_state("networkidle")  # Ensure everything loads
+    await asyncio.sleep(3)  # Let JavaScript execute
 
     print("✅ Browser running with anti-bot protections")
     yield
@@ -62,26 +77,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.get("/extract-mail")
-async def extract_content():
-    """Extracts text from the AdGuard page."""
-    if not adguard_page:
-        return {"error": "Browser not initialized"}
-    text = await adguard_page.evaluate("document.body.innerText")
-    return {"content": text[:500]}
-
-@app.get("/extract-prompt")
+@app.get(path="/extract-prompt")
 async def extract_prompt():
-    """Extracts prompt fields from the CivitAI page."""
+    """Scrapes and returns text content from CivitAI using predefined selectors."""
     if not civitai_page:
         return {"error": "Browser not initialized"}
-    
+
     prompt_scraps = {}
+
     for field, selector in civitai_selectors.items():
-        element = await civitai_page.query_selector(selector)
-        prompt_scraps[field] = await element.inner_text() if element else "Not found"
-    
+        try:
+            element = await civitai_page.query_selector(selector)
+            text = await element.inner_text() if element else "Not found"
+            prompt_scraps[field] = text
+        except Exception as e:
+            prompt_scraps[field] = f"Error: {e}"
+
     return {"content": prompt_scraps}
+
 
 if __name__ == "__main__":
     import uvicorn
