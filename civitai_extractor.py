@@ -1,3 +1,5 @@
+#!./python
+
 from fastapi import FastAPI
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth
@@ -40,12 +42,12 @@ async def lifespan(app: FastAPI):
 
     civitai_page = await context.new_page()
     adguard_page = await context.new_page()
-    
-    # await stealth(civitai_page)
-    # await stealth(adguard_page)
 
-    await civitai_page.goto("https://civitai.com/generate")
-    await adguard_page.goto("https://adguard.com/fr/adguard-temp-mail/overview.html")
+    await stealth(civitai_page)
+    await stealth(adguard_page)
+
+    await civitai_page.goto(civitai_generation_url)
+    await adguard_page.goto(adguard_page_url)
 
     print("✅ Browser running with anti-bot protections")
     yield
@@ -53,7 +55,6 @@ async def lifespan(app: FastAPI):
     await browser.close()
     await playwright.stop()
     print("🛑 Browser closed!")
-
 
 app = FastAPI(lifespan=lifespan)
 
@@ -80,4 +81,4 @@ async def extract_prompt():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("browser_control:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("civitai_extractor:app", host="127.0.0.1", port=8000, reload=True)
