@@ -6,7 +6,6 @@ from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
 import asyncio
 
-# adguard_mail_selector = '#app > main > div > section.address > div > div > div > button.address__copy > span.address__copy-text'
 civitai_selectors = {
     'positivePromptArea': "#input_prompt",
     'negativePromptArea': "#input_negativePrompt",
@@ -18,19 +17,16 @@ civitai_selectors = {
     'stepsTextInput': "#mantine-rj"
 }
 civitai_generation_url = "https://civitai.com/generate"
-# adguard_page_url = "https://adguard.com/fr/adguard-temp-mail/overview.html"
 
 # Global variables
 browser = None
 civitai_page = None
-adguard_page = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Start and close Playwright browser properly."""
-    global browser, civitai_page, adguard_page
+    global browser, civitai_page
 
-    # Start Playwright and browser
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(headless=False)
 
@@ -47,8 +43,7 @@ async def lifespan(app: FastAPI):
 
     civitai_page = await context.new_page()
 
-    # ✅ Fix: Define 'opts' before stealth
-    await civitai_page.add_init_script("const opts = {};")
+    # ✅ Apply stealth before anything else
     await stealth_async(civitai_page)
 
     # ✅ Set auth headers (if required)
@@ -58,15 +53,10 @@ async def lifespan(app: FastAPI):
 
     await civitai_page.goto(civitai_generation_url)
 
-    # ✅ Fix: Wait for page load using a reliable selector
-    try:
-        await civitai_page.wait_for_selector("body", timeout=15000)
-        print("✅ Page loaded successfully!")
-    except Exception as e:
-        print(f"⚠️ Warning: Page may not have fully loaded: {e}")
-
-    await civitai_page.wait_for_load_state("networkidle")  # Ensure everything loads
-    await asyncio.sleep(3)  # Let JavaScript execute
+    # ✅ Ensure React fully loads before interaction
+    await civitai_page.wait_for_load_state("domcontentloaded")  # Wait for HTML
+    await civitai_page.wait_for_load_state("networkidle")  # Wait for API calls
+    await asyncio.sleep(3)  # Give React extra time to hydrate
 
     print("✅ Browser running with anti-bot protections")
     yield
@@ -77,7 +67,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.get(path="/extract-prompt")
+@app.get("/extract-prompt")
 async def extract_prompt():
     """Scrapes and returns text content from CivitAI using predefined selectors."""
     if not civitai_page:
@@ -94,7 +84,6 @@ async def extract_prompt():
             prompt_scraps[field] = f"Error: {e}"
 
     return {"content": prompt_scraps}
-
 
 if __name__ == "__main__":
     import uvicorn
