@@ -35,15 +35,19 @@ async def lifespan(app: FastAPI):
 
     context = await browser.new_context(
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                   "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+                "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         locale="en-US",
         viewport={"width": 1920, "height": 1080},
+        java_script_enabled=True,  # Keep JS enabled
+        ignore_https_errors=True,  # Bypass HTTPS issues
+        timezone_id="America/New_York",  # Set a realistic timezone
+        permissions=["geolocation"],  # Allow real geolocation
     )
 
     civitai_page = await context.new_page()
     # adguard_page = await context.new_page()
 
-    stealth.stealth_sync(civitai_page)
+    await stealth.stealth_async(civitai_page)
     # stealth.stealth_sync(adguard_page)
 
     await civitai_page.goto(civitai_generation_url)
