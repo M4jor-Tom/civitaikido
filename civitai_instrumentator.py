@@ -1,11 +1,13 @@
 #!./python
 
 import re
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from playwright.async_api import async_playwright
 from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
 import asyncio
+
+from pydantic import BaseModel
 
 civitai_selectors: dict[str, str] = {
     'positivePromptArea': "#input_prompt",
@@ -18,19 +20,26 @@ civitai_selectors: dict[str, str] = {
     'stepsTextInput': "#mantine-rj"
 }
 
-# civitai_generation_url: str = "https://civitai.com/generate"
-civitai_generation_url: str = "https://civitai.com/api/auth/callback/email?callbackUrl=https%3A%2F%2Fcivitai.com%2Fgenerate&token=bd2e552373b0d5dbf15628c4bbf7b0a9a73c06ad7c585312db7ec631c49703bf&email=eastern.panther.zzbr%40letterhaven.net"
-# adguard_mails_page_url: str = "https://adguard.com/fr/adguard-temp-mail/overview.html"
 
 # Global variables
 browser = None
 civitai_page = None
+signed_in_civitai_generation_url: str = None
+browser_ready_event = asyncio.Event()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Start and close Playwright browser properly."""
-    global browser, civitai_page
+async def init_browser():
+    """Initializes the browser when the URL is set."""
+    global browser, civitai_page, signed_in_civitai_generation_url
 
+    print(f"⏳ Waiting for URL to initialize the browser...")
+
+    # Wait until an URL is set
+    while signed_in_civitai_generation_url is None:
+        await asyncio.sleep(1)
+
+    print(f"✅ URL received: {signed_in_civitai_generation_url}")
+
+    # Start Playwright
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(headless=False)
 
@@ -39,45 +48,63 @@ async def lifespan(app: FastAPI):
                    "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         locale="en-US",
         viewport={"width": 1920, "height": 1080},
-        java_script_enabled=True,  # Keep JS enabled
-        ignore_https_errors=True,  # Bypass HTTPS issues
-        timezone_id="America/New_York",  # Set a realistic timezone
-        permissions=["geolocation"],  # Allow real geolocation
+        java_script_enabled=True,
+        ignore_https_errors=True,
+        timezone_id="America/New_York",
+        permissions=["geolocation"],
     )
 
     civitai_page = await context.new_page()
 
-    # ✅ Ensure opts is defined to prevent ReferenceError
-    await civitai_page.add_init_script("window.opts = {};")
+    # Load the provided URL
+    await civitai_page.goto(signed_in_civitai_generation_url)
 
-    # ✅ Set auth headers (if required)
-    await civitai_page.set_extra_http_headers({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-    })
-
-    await civitai_page.goto(civitai_generation_url)
-
-    # ✅ Ensure React fully loads before injecting scripts
-    await civitai_page.wait_for_selector("#__next", timeout=15000)  # Wait for Next.js root
+    await civitai_page.wait_for_selector("#__next", timeout=15000)
 
     try:
-        await civitai_page.wait_for_load_state("domcontentloaded", timeout=15000)  # Avoids networkidle timeout
+        await civitai_page.wait_for_load_state("domcontentloaded", timeout=15000)
     except Exception:
         print("⚠️ Warning: Page load state took too long, continuing anyway.")
 
-    await asyncio.sleep(5)  # Ensure JavaScript finishes executing
+    await asyncio.sleep(5)
 
-    # ✅ Apply stealth AFTER page has fully loaded
+    # Apply stealth mode
     await stealth_async(civitai_page)
 
-    print("✅ Browser running with anti-bot protections")
-    yield
+    print("✅ Browser initialized with anti-bot protections")
+    browser_ready_event.set()  # Notify that the browser is ready
 
-    await browser.close()
-    await playwright.stop()
-    print("🛑 Browser closed!")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan function that starts FastAPI without blocking Swagger and browser startup."""
+    print("🚀 FastAPI is starting...")
+
+    # Start the browser initialization in a background task
+    asyncio.create_task(init_browser())
+
+    yield  # Allow FastAPI to run
+
+    # Shutdown sequence
+    if browser:
+        await browser.close()
+        print("🛑 Browser closed!")
 
 app = FastAPI(lifespan=lifespan)
+
+class URLInput(BaseModel):
+    url: str
+
+@app.post("/set_generation_url")
+async def set_generation_url(data: URLInput):
+    """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
+    global signed_in_civitai_generation_url
+
+    if not data.url.startswith("http"):
+        raise HTTPException(status_code=400, detail="Invalid URL format")
+
+    signed_in_civitai_generation_url = data.url
+    return {"message": "URL set successfully", "url": signed_in_civitai_generation_url}
 
 @app.get("/extract-prompt")
 async def extract_prompt():
@@ -261,4 +288,4 @@ async def codegen():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("civitai_extractor:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("civitai_instrumentator:app", host="127.0.0.1", port=8000, reload=True)
