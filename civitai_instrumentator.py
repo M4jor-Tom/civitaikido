@@ -26,6 +26,7 @@ browser = None
 civitai_page = None
 signed_in_civitai_generation_url: str = None
 browser_ready_event = asyncio.Event()
+global_timeout: int = 60000
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
@@ -59,10 +60,10 @@ async def init_browser():
     # Load the provided URL
     await civitai_page.goto(signed_in_civitai_generation_url)
 
-    await civitai_page.wait_for_selector("#__next", timeout=15000)
+    await civitai_page.wait_for_selector("#__next", timeout=global_timeout)
 
     try:
-        await civitai_page.wait_for_load_state("domcontentloaded", timeout=15000)
+        await civitai_page.wait_for_load_state("domcontentloaded", timeout=global_timeout)
     except Exception:
         print("⚠️ Warning: Page load state took too long, continuing anyway.")
 
@@ -95,6 +96,14 @@ app = FastAPI(lifespan=lifespan)
 class URLInput(BaseModel):
     url: str
 
+async def wait_for_action(action_name: str, callback):
+    try:
+        print(f"⏳[WAIT] " + action_name)
+        await callback()
+        print("✅[DONE] " + action_name)
+    except Exception as e:
+        print("⚠️[TIMEOUT] " + action_name + ": " + str(e))
+
 @app.post("/set_generation_url")
 async def set_generation_url(data: URLInput):
     """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
@@ -106,36 +115,39 @@ async def set_generation_url(data: URLInput):
     signed_in_civitai_generation_url = data.url
     return {"message": "URL set successfully", "url": signed_in_civitai_generation_url}
 
-@app.get("/extract-prompt")
-async def extract_prompt():
-    """Scrapes and returns text content from CivitAI using predefined selectors."""
-    if not civitai_page:
-        return {"error": "Browser not initialized"}
-
-    prompt_scraps = {}
-
-    for field, selector in civitai_selectors.items():
-        try:
-            element = await civitai_page.query_selector(selector)
-            text = await element.inner_text() if element else "Not found"
-            prompt_scraps[field] = text
-        except Exception as e:
-            prompt_scraps[field] = f"Error: {e}"
-
-    return {"content": prompt_scraps}
+@app.post("/prepare_session")
+async def prepare_session():
+    await remove_cookies()
+    await enter_generation_perspective()
+    await skip_getting_started()
+    await confirm_start_generating_yellow_button()
+    await claim_buzz()
 
 @app.get("/remove_cookies")
 async def remove_cookies():
-    await civitai_page.get_by_text("Customise choices").click()
-    await civitai_page.get_by_text("Save preferences").click()
+    async def interact():
+        await civitai_page.get_by_text("Customise choices").wait_for(state="visible", timeout=global_timeout)
+        await civitai_page.get_by_text("Customise choices").click()
+        await civitai_page.get_by_text("Save preferences").click()
+    await wait_for_action("remove_cookies", interact)
 
 @app.get("/skip_getting_started")
 async def skip_getting_started():
-    await civitai_page.get_by_role("button", name="Skip").click()
+    async def interact():
+        await civitai_page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=global_timeout)
+        await civitai_page.get_by_role("button", name="Skip").click()
+    await wait_for_action("skip_getting_started", interact)
 
 @app.get("/confirm_start_generating_yellow_button")
 async def confirm_start_generating_yellow_button():
+    print("✅ I Confirm, Start Generating")
     await civitai_page.get_by_role("button", name="I Confirm, Start Generating").click()
+
+@app.get("/claim_buzz")
+async def claim_buzz():
+    locator = civitai_page.locator('button:has-text("Claim 25 Buzz")')
+    if await locator.is_visible():
+        await locator.click()
 
 @app.get("/open_settings_pre_menu")
 async def open_settings_pre_menu():
@@ -156,7 +168,9 @@ async def enable_mature_content():
 
 @app.get("/enter_generation_perspective")
 async def enter_generation_perspective():
-    await civitai_page.locator("div:nth-child(3) > button").first.click()
+    async def interact():
+        await civitai_page.locator('button[data-activity="create:navbar"]').first.click()
+    await wait_for_action("enter_generation_perspective", interact)
 
 @app.get("/write_positive_prompt")
 async def write_positive_prompt():
