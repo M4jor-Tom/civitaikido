@@ -28,6 +28,51 @@ signed_in_civitai_generation_url: str = None
 browser_ready_event = asyncio.Event()
 global_timeout: int = 60000
 
+class URLInput(BaseModel):
+    url: str
+
+async def wait_for_action(action_name: str, callback):
+    try:
+        print(f"⏳[WAIT] " + action_name)
+        await callback()
+        print("✅[DONE] " + action_name)
+    except Exception as e:
+        print("⚠️[TIMEOUT] " + action_name + ": " + str(e))
+
+async def remove_cookies():
+    async def interact():
+        await civitai_page.get_by_text("Customise choices").wait_for(state="visible", timeout=global_timeout)
+        await civitai_page.get_by_text("Customise choices").click()
+        await civitai_page.get_by_text("Save preferences").click()
+    await wait_for_action("remove_cookies", interact)
+
+async def enter_generation_perspective():
+    async def interact():
+        await civitai_page.locator('button[data-activity="create:navbar"]').first.click()
+    await wait_for_action("enter_generation_perspective", interact)
+
+async def skip_getting_started():
+    async def interact():
+        await civitai_page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=global_timeout)
+        await civitai_page.get_by_role("button", name="Skip").click()
+    await wait_for_action("skip_getting_started", interact)
+
+async def confirm_start_generating_yellow_button():
+    print("✅ I Confirm, Start Generating")
+    await civitai_page.get_by_role("button", name="I Confirm, Start Generating").click()
+
+async def claim_buzz():
+    locator = civitai_page.locator('button:has-text("Claim 25 Buzz")')
+    if await locator.is_visible():
+        await locator.click()
+
+async def prepare_session():
+    await remove_cookies()
+    await enter_generation_perspective()
+    await skip_getting_started()
+    await confirm_start_generating_yellow_button()
+    await claim_buzz()
+
 async def init_browser():
     """Initializes the browser when the URL is set."""
     global browser, civitai_page, signed_in_civitai_generation_url
@@ -74,6 +119,7 @@ async def init_browser():
 
     print("✅ Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
+    await prepare_session()
 
 
 @asynccontextmanager
@@ -93,17 +139,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-class URLInput(BaseModel):
-    url: str
-
-async def wait_for_action(action_name: str, callback):
-    try:
-        print(f"⏳[WAIT] " + action_name)
-        await callback()
-        print("✅[DONE] " + action_name)
-    except Exception as e:
-        print("⚠️[TIMEOUT] " + action_name + ": " + str(e))
-
 @app.post("/set_generation_url")
 async def set_generation_url(data: URLInput):
     """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
@@ -113,41 +148,7 @@ async def set_generation_url(data: URLInput):
         raise HTTPException(status_code=400, detail="Invalid URL format")
 
     signed_in_civitai_generation_url = data.url
-    return {"message": "URL set successfully", "url": signed_in_civitai_generation_url}
-
-@app.post("/prepare_session")
-async def prepare_session():
-    await remove_cookies()
-    await enter_generation_perspective()
-    await skip_getting_started()
-    await confirm_start_generating_yellow_button()
-    await claim_buzz()
-
-@app.get("/remove_cookies")
-async def remove_cookies():
-    async def interact():
-        await civitai_page.get_by_text("Customise choices").wait_for(state="visible", timeout=global_timeout)
-        await civitai_page.get_by_text("Customise choices").click()
-        await civitai_page.get_by_text("Save preferences").click()
-    await wait_for_action("remove_cookies", interact)
-
-@app.get("/skip_getting_started")
-async def skip_getting_started():
-    async def interact():
-        await civitai_page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=global_timeout)
-        await civitai_page.get_by_role("button", name="Skip").click()
-    await wait_for_action("skip_getting_started", interact)
-
-@app.get("/confirm_start_generating_yellow_button")
-async def confirm_start_generating_yellow_button():
-    print("✅ I Confirm, Start Generating")
-    await civitai_page.get_by_role("button", name="I Confirm, Start Generating").click()
-
-@app.get("/claim_buzz")
-async def claim_buzz():
-    locator = civitai_page.locator('button:has-text("Claim 25 Buzz")')
-    if await locator.is_visible():
-        await locator.click()
+    return {"message": "URL set successfully; Session prepared for xml injection", "url": signed_in_civitai_generation_url}
 
 @app.get("/open_settings_pre_menu")
 async def open_settings_pre_menu():
@@ -165,12 +166,6 @@ async def enable_mature_content():
     await civitai_page.locator(".mantine-Paper-root > div:nth-child(3) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-69c9zd").click()
     await civitai_page.locator("div:nth-child(4) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-69c9zd").first.click()
     await civitai_page.locator("div:nth-child(5) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-155cra4").click()
-
-@app.get("/enter_generation_perspective")
-async def enter_generation_perspective():
-    async def interact():
-        await civitai_page.locator('button[data-activity="create:navbar"]').first.click()
-    await wait_for_action("enter_generation_perspective", interact)
 
 @app.get("/write_positive_prompt")
 async def write_positive_prompt():
