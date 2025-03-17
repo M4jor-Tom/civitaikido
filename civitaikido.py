@@ -297,4 +297,4 @@ async def codegen():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("civitai_instrumentator:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("civitaikido:app", host="127.0.0.1", port=8000, reload=True)
