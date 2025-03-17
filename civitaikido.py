@@ -134,6 +134,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown sequence
     if browser:
+        await civitai_page.close()
         await browser.close()
         print("🛑 Browser closed!")
 
@@ -250,11 +251,6 @@ async def set_additional_resource_wheight():
 async def generate():
     await civitai_page.get_by_role("button", name="Generate").click()
 
-@app.get("/close")
-async def close():
-    await civitai_page.close()
-
-@app.get("/codegen")
 async def codegen():
     await civitai_page.get_by_role("button", name="BA 100").click()
     await civitai_page.get_by_label("BA100").get_by_role("link").filter(has_text=re.compile(r"^$")).click()
