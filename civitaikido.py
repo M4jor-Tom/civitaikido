@@ -1,13 +1,21 @@
 #!./python
 
 import re
-from fastapi import FastAPI, HTTPException
+import lxml.etree as ET
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from playwright.async_api import async_playwright
 from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
 import asyncio
+import requests
 
 from pydantic import BaseModel
+
+# ANSI color codes for colored output
+COLOR_OK = "\033[92m"       # Green
+COLOR_ERROR = "\033[91m"    # Red
+COLOR_WARNING = "\033[93m"  # Yellow
+COLOR_RESET = "\033[0m"     # Reset color
 
 civitai_selectors: dict[str, str] = {
     'positivePromptArea': "#input_prompt",
@@ -19,7 +27,9 @@ civitai_selectors: dict[str, str] = {
     'stepsHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div:nth-child(3) > div > div.mantine-Slider-root.flex-1.mantine-15k342w > input[type=hidden]",
     'stepsTextInput': "#mantine-rj"
 }
-
+# enable:
+# https://civitai.com/user/account
+# 'div:has-text("Show mature content")'
 
 # Global variables
 browser = None
@@ -31,40 +41,66 @@ global_timeout: int = 60000
 class URLInput(BaseModel):
     url: str
 
-async def wait_for_action(action_name: str, callback):
+async def try_action(action_name: str, callback):
     try:
-        print(f"⏳[WAIT] " + action_name)
+        print("⏳ [WAIT] " + action_name)
         await callback()
-        print("✅[DONE] " + action_name)
+        print("✅ [DONE] " + action_name)
     except Exception as e:
-        print("⚠️[TIMEOUT] " + action_name + ": " + str(e))
+        print("⚠️ [SKIP] " + action_name + ": " + str(e))
+
+async def click_if_visible(action_name: str, locator):
+    if await locator.is_visible():
+        await locator.click()
+        print("✅ [DONE] Clicked locator for " + action_name)
+    else:
+        print("⚠️ [SKIP] Locator for " + action_name + " not visible")
+
+def fetch_xsd(xsd_url: str) -> ET.XMLSchema:
+    """Fetches an XSD file from a URL and returns an XMLSchema object.
+
+    Args:
+        xsd_url: URL of the XSD schema.
+
+    Returns:
+        XMLSchema object if successfully fetched, else None.
+    """
+    try:
+        response = requests.get(xsd_url, timeout=10)
+        response.raise_for_status()  # Raise an error for HTTP failures
+
+        xsd_tree = ET.XML(response.content)
+        return ET.XMLSchema(xsd_tree)
+    except requests.RequestException as e:
+        print(f"{COLOR_ERROR}[ERROR] Failed to fetch XSD from {xsd_url}: {e}{COLOR_RESET}")
+        return None
+    except ET.XMLSyntaxError as e:
+        print(f"{COLOR_ERROR}[ERROR] Invalid XSD format from {xsd_url}: {e}{COLOR_RESET}")
+        return None
 
 async def remove_cookies():
     async def interact():
         await civitai_page.get_by_text("Customise choices").wait_for(state="visible", timeout=global_timeout)
         await civitai_page.get_by_text("Customise choices").click()
         await civitai_page.get_by_text("Save preferences").click()
-    await wait_for_action("remove_cookies", interact)
+    await try_action("remove_cookies", interact)
 
 async def enter_generation_perspective():
     async def interact():
         await civitai_page.locator('button[data-activity="create:navbar"]').first.click()
-    await wait_for_action("enter_generation_perspective", interact)
+    await try_action("enter_generation_perspective", interact)
 
 async def skip_getting_started():
     async def interact():
         await civitai_page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=global_timeout)
         await civitai_page.get_by_role("button", name="Skip").click()
-    await wait_for_action("skip_getting_started", interact)
+    await try_action("skip_getting_started", interact)
 
 async def confirm_start_generating_yellow_button():
-    print("✅ I Confirm, Start Generating")
-    await civitai_page.get_by_role("button", name="I Confirm, Start Generating").click()
+    await click_if_visible("confirm_start_generating_yellow_button", civitai_page.get_by_role("button", name="I Confirm, Start Generating"))
 
 async def claim_buzz():
-    locator = civitai_page.locator('button:has-text("Claim 25 Buzz")')
-    if await locator.is_visible():
-        await locator.click()
+    await click_if_visible("claim_buzz", civitai_page.locator('button:has-text("Claim 25 Buzz")'))
 
 async def prepare_session():
     await remove_cookies()
@@ -150,6 +186,41 @@ async def set_generation_url(data: URLInput):
 
     signed_in_civitai_generation_url = data.url
     return {"message": "URL set successfully; Session prepared for xml injection", "url": signed_in_civitai_generation_url}
+
+@app.post("/inject_prompt")
+async def inject_prompt(file: UploadFile = File(...)):
+    """Validates an uploaded XML file against an XSD schema from a given URL.
+
+    Returns:
+        A JSON response indicating whether the XML is valid or not.
+    """
+    try:
+        # Read XML content
+        xml_content = await file.read()
+        xml_tree = ET.ElementTree(ET.fromstring(xml_content))
+        root = xml_tree.getroot()
+
+        # Extract xsi:noNamespaceSchemaLocation (URL or file path)
+        xsi_ns = "http://www.w3.org/2001/XMLSchema-instance"
+        xsd_location = root.attrib.get(f"{{{xsi_ns}}}noNamespaceSchemaLocation")
+
+        # Parse the XSD schema
+        if xsd_location.startswith(("http://", "https://")):
+            xsd_schema = fetch_xsd(xsd_location)
+            if not xsd_schema:
+                return {"message": "Failed to fetch the XSD"}
+
+        # Validate XML against the schema
+        if xsd_schema.validate(xml_tree):
+            return {"message": "XML is valid against the provided XSD"}
+        else:
+            errors = xsd_schema.error_log
+            return {"message": "XML validation failed", "errors": errors.last_error}
+
+    except ET.XMLSyntaxError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.get("/open_settings_pre_menu")
 async def open_settings_pre_menu():
