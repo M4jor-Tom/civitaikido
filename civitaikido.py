@@ -27,14 +27,13 @@ civitai_selectors: dict[str, str] = {
     'stepsHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div:nth-child(3) > div > div.mantine-Slider-root.flex-1.mantine-15k342w > input[type=hidden]",
     'stepsTextInput': "#mantine-rj"
 }
-# enable:
-# https://civitai.com/user/account
-# 'div:has-text("Show mature content")'
 
 # Global variables
 browser = None
 civitai_page = None
 signed_in_civitai_generation_url: str = None
+civitai_generation_url: str = 'https://civitai.com/generate'
+civitai_user_page_url: str = 'https://civitai.com/user/account'
 browser_ready_event = asyncio.Event()
 global_timeout: int = 60000
 
@@ -85,10 +84,34 @@ async def remove_cookies():
         await civitai_page.get_by_text("Save preferences").click()
     await try_action("remove_cookies", interact)
 
+async def enter_parameters_perspective():
+    async def interact():
+        await civitai_page.locator('div[title]').first.click()
+        await civitai_page.locator('a[href="/user/account"]').first.click()
+    await try_action("enter_parameters_perspective", interact)
+
+async def enable_mature_content():
+    async def interact():
+        await civitai_page.locator('div:has-text("Show mature content")').first.click()
+        await civitai_page.locator('div:has-text("Blur mature content")').first.click()
+        # await civitai_page.locator('div:has-text("PG")').first.click()
+        await civitai_page.locator('div:has-text("Safe for work. No naughty stuff")').first.click()
+        # await civitai_page.locator('div:has-text("PG-13")').first.click()
+        await civitai_page.locator('div:has-text("Revealing clothing, violence, or light gore")').first.click()
+        # await civitai_page.locator('div:has-text("R")').first.click()
+        await civitai_page.locator('div:has-text("Adult themes and situations, partial nudity, graphic violence, or death")').first.click()
+        # await civitai_page.locator('div:has-text("X")').first.click()
+        await civitai_page.locator('div:has-text("Graphic nudity, adult objects, or settings")').first.click()
+        # await civitai_page.locator('div:has-text("XXX")').first.click()
+        await civitai_page.locator('div:has-text("Overtly sexual or disturbing graphic content")').first.click()
+    await try_action("enable_mature_content", interact)
+
 async def enter_generation_perspective():
     async def interact():
         await civitai_page.locator('button[data-activity="create:navbar"]').first.click()
+        await civitai_page.locator('a[href="/generate"]').first.click()
     await try_action("enter_generation_perspective", interact)
+    # await civitai_page.goto(civitai_generation_url)
 
 async def skip_getting_started():
     async def interact():
@@ -104,10 +127,12 @@ async def claim_buzz():
 
 async def prepare_session():
     await remove_cookies()
-    await enter_generation_perspective()
     await skip_getting_started()
     await confirm_start_generating_yellow_button()
     await claim_buzz()
+    # await enter_parameters_perspective()
+    # await enable_mature_content()
+    await enter_generation_perspective()
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
@@ -229,15 +254,6 @@ async def open_settings_pre_menu():
 @app.get("/open_settings_menu")
 async def open_settings_menu():
     await civitai_page.get_by_label("EA125").get_by_role("link").filter(has_text=re.compile(r"^$")).click()
-
-@app.get("/enable_mature_content")
-async def enable_mature_content():
-    await civitai_page.locator("div:nth-child(2) > .mantine-uetonu > .mantine-17s5p12 > .mantine-155cra4").first.click()
-    await civitai_page.locator("div:nth-child(2) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-69c9zd").first.click()
-    await civitai_page.locator("div:nth-child(2) > div:nth-child(2) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-69c9zd").click()
-    await civitai_page.locator(".mantine-Paper-root > div:nth-child(3) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-69c9zd").click()
-    await civitai_page.locator("div:nth-child(4) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-69c9zd").first.click()
-    await civitai_page.locator("div:nth-child(5) > .mantine-Switch-root > .mantine-uetonu > .mantine-17s5p12 > .mantine-155cra4").click()
 
 @app.get("/write_positive_prompt")
 async def write_positive_prompt():
