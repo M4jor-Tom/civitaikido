@@ -308,7 +308,7 @@ def parse_prompt(xml_root) -> Prompt:
 async def add_resource_by_hash(resource_hash: str):
     await civitai_page.locator(model_search_input_selector).fill(resource_hash)
     await asyncio.sleep(5)
-    await civitai_page.locator("img[src][class][style][alt][loading]").last.click()
+    await civitai_page.locator("img[src][class][style][alt][loading]").last.click(force=True)
     await civitai_page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
     await civitai_page.locator('button[data-activity="create:model"]').click()
     await enter_generation_perspective()
