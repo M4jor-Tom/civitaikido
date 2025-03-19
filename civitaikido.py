@@ -201,8 +201,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.post("/set_generation_url")
-async def set_generation_url(data: URLInput):
+@app.post("/open_browser")
+async def open_browser(data: URLInput):
     """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
     global signed_in_civitai_generation_url
 
