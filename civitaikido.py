@@ -76,20 +76,29 @@ class Prompt(BaseModel):
             return 'Square1024x1024'
         return None
 
+def log_wait(message: str):
+        print("⏳ [WAIT] " + message)
+
+def log_done(message: str):
+        print("✅ [DONE] " + message)
+
+def log_skip(message: str):
+        print("⚠️ [SKIP] " + message)
+
 async def try_action(action_name: str, callback):
     try:
-        print("⏳ [WAIT] " + action_name)
+        log_wait(action_name)
         await callback()
-        print("✅ [DONE] " + action_name)
+        log_done(action_name)
     except Exception as e:
-        print("⚠️ [SKIP] " + action_name + ": " + str(e))
+        log_skip(action_name + ": " + str(e))
 
 async def click_if_visible(action_name: str, locator):
     if await locator.is_visible():
         await locator.click()
-        print("✅ [DONE] Clicked locator for " + action_name)
+        log_done("Clicked locator for " + action_name)
     else:
-        print("⚠️ [SKIP] Locator for " + action_name + " not visible")
+        log_skip("Locator for " + action_name + " not visible")
 
 def fetch_xsd(xsd_url: str) -> ET.XMLSchema:
     """Fetches an XSD file from a URL and returns an XMLSchema object.
@@ -176,13 +185,13 @@ async def init_browser():
     """Initializes the browser when the URL is set."""
     global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation
 
-    print(f"⏳ Waiting for URL to initialize the browser...")
+    log_wait("Browser to initialise...")
 
     # Wait until an URL is set
     while signed_in_civitai_generation_url is None:
         await asyncio.sleep(1)
 
-    print(f"✅ URL received: {signed_in_civitai_generation_url}")
+    log_done("URL received: " + signed_in_civitai_generation_url)
 
     # Start Playwright
     playwright = await async_playwright().start()
@@ -209,14 +218,14 @@ async def init_browser():
     try:
         await civitai_page.wait_for_load_state("domcontentloaded", timeout=global_timeout)
     except Exception:
-        print("⚠️ Warning: Page load state took too long, continuing anyway.")
+        log_skip("Page load state took too long, continuing anyway.")
 
     await asyncio.sleep(5)
 
     # Apply stealth mode
     await stealth_async(civitai_page)
 
-    print("✅ Browser initialized with anti-bot protections")
+    log_done("Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
     await prepare_session(first_session_preparation)
 
@@ -307,21 +316,29 @@ def parse_prompt(xml_root) -> Prompt:
     )
 
 async def add_resource_by_hash(resource_hash: str):
+    log_wait("add_resource_by_hash: " + resource_hash)
     await civitai_page.locator(model_search_input_selector).fill(resource_hash)
     await asyncio.sleep(5)
     await civitai_page.locator("img[src][class][style][alt][loading]").last.click(force=True)
     await civitai_page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
     await civitai_page.locator('button[data-activity="create:model"]').click()
     await enter_generation_perspective()
+    log_done("add_resource_by_hash: " + resource_hash)
 
 async def open_additional_resources_accordion():
+    log_wait("open_additional_resources_accordion")
     await civitai_page.locator("//*[text()='Additional Resources']").click()
+    log_done("open_additional_resources_accordion")
 
-async def set_lora_weight(lora_weight: int):
+async def set_lora_weight(lora_weight: float):
+    log_wait("set_lora_weight: " + str(lora_weight))
     await civitai_page.locator("(//*[div/div/div/div/text()='Additional Resources']/following-sibling::*//input[@type][@max][@min][@step][@inputmode])[1]").fill(str(lora_weight))
+    log_done("set_lora_weight: " + str(lora_weight))
 
 async def write_positive_prompt(positive_text_prompt: str):
+    log_wait("write_positive_prompt")
     await civitai_page.get_by_role("textbox", name="Your prompt goes here...").fill(positive_text_prompt)
+    log_done("write_positive_prompt")
 
 async def write_negative_prompt(negative_text_prompt: str):
     async def interact():
@@ -329,43 +346,41 @@ async def write_negative_prompt(negative_text_prompt: str):
     await try_action("write_negative_prompt", interact)
 
 async def set_ratio_by_text(ratio_text: str):
+    log_wait("set_ratio_by_text: " + ratio_text)
     await civitai_page.locator("label").filter(has_text=ratio_text).click()
+    log_done("set_ratio_by_text: " + ratio_text)
 
 async def toggle_image_properties_accordion():
+    log_wait("toggle_image_properties_accordion")
     await civitai_page.get_by_role("button", name="Advanced").click()
+    log_done("toggle_image_properties_accordion")
 
-async def set_cfg_scale(cfg_scale: int):
+async def set_cfg_scale(cfg_scale: float):
     async def interact():
         await civitai_page.locator("#input_cfgScale-label + div > :nth-child(2) input").wait_for(timeout=global_timeout)
         await civitai_page.locator("#input_cfgScale-label + div > :nth-child(2) input").fill(str(cfg_scale))
-    await try_action('set_cfg_scale', interact)
+    await try_action('set_cfg_scale: ' + str(cfg_scale), interact)
 
 async def set_sampler(sampler: str):
+    log_wait("set_sampler: " + sampler)
     await civitai_page.locator("#input_sampler").click()
-    print(await civitai_page.locator("#input_sampler-label + div + div").all_text_contents())
+    await civitai_page.locator("//div[@role='combobox']/following-sibling::div//div[text()='" + sampler + "']").click()
+    log_done("set_sampler: " + sampler)
 
 async def set_steps(steps: int):
+    log_wait("set_steps: " + str(steps))
     await civitai_page.locator("#input_steps-label + div > :nth-child(2) input").fill(str(steps))
+    log_done("set_steps: " + str(steps))
 
 async def set_seed(seed: str):
+    log_wait("set_seed: " + seed)
     await civitai_page.get_by_role("textbox", name="Random").fill(seed)
-
-global previous_priority, next_priority
-previous_priority: str = "Standard"
-next_priority: str = "High +"
-async def set_priority():
-    standard: str = "Standard"
-    high: str = "High +"
-    highest: str = "Highest +"
-    await civitai_page.get_by_role("button", name=previous_priority).click()
-    await civitai_page.get_by_role("option", name=next_priority).locator("div").first.click()
-    previous_priority=next_priority
-
-async def enter_base_model_selection():
-    await civitai_page.get_by_role("button", name="Swap").click()
+    log_done("set_seed: " + seed)
 
 async def generate():
+    log_wait("generate")
     await civitai_page.get_by_role("button", name="Generate").click()
+    log_done("generate")
 
 async def inject(prompt: Prompt):
     await add_resource_by_hash(prompt.base_model.hash)
