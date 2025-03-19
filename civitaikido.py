@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import requests
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 # ANSI color codes for colored output
 COLOR_OK = "\033[92m"       # Green
@@ -39,6 +39,38 @@ global_timeout: int = 60000
 
 class URLInput(BaseModel):
     url: str
+
+class Resource(BaseModel):
+    hash: str
+
+class LoraWheight(BaseModel):
+    lora: Resource
+    wheight: float
+
+class Prompt(BaseModel):
+    base_model: Resource
+    loras: list[LoraWheight]
+    embeddings: list[Resource]
+    vae: Resource | None
+    positive_prompt_text: str
+    negative_prompt_text: str | None
+    image_width_px: int
+    image_height_px: int
+    generation_steps: int
+    sampler_name: str
+    cfg_scale: float
+    seed: str
+    clip_skip: int
+
+    @computed_field
+    @property
+    def ratio_selector_text(self) -> str | None:
+        if self.image_width_px == 832 and self.image_height_px == 1216:
+            return 'Portrait832x1216'
+        elif self.image_width_px == 1216 and self.image_height_px == 832:
+            return 'Landscape1216x832'
+        elif self.image_width_px == 1024 and self.image_height_px == 1024:
+            return 'Square1024x1024'
 
 async def try_action(action_name: str, callback):
     try:
@@ -212,9 +244,61 @@ async def open_browser(data: URLInput):
     signed_in_civitai_generation_url = data.url
     return {"message": "URL set successfully; Session prepared for xml injection", "url": signed_in_civitai_generation_url}
 
-def parse_prompt(xml_root):
-    print(xml_root)
-    return {}
+def parse_prompt(xml_root) -> Prompt:
+    # Extract base model information
+    base_model_hash = xml_root.find(".//base-model/hash").text
+    base_model = Resource(hash=base_model_hash)
+
+    # Extract Loras and their weights
+    loras = []
+    for lora_elem in xml_root.findall(".//resources/lora"):
+        lora_hash = lora_elem.find("hash").text
+        lora_weight = float(lora_elem.find("wheight").text)
+        loras.append(LoraWheight(
+            lora=Resource(hash=lora_hash),
+            wheight=lora_weight
+        ))
+
+    # Extract embeddings
+    embeddings = []
+    for embedding_elem in xml_root.findall(".//resources/embedding"):
+        embedding_hash = embedding_elem.find("hash").text
+        embeddings.append(Resource(hash=embedding_hash))
+
+    # Extract VAE (optional)
+    vae_elem = xml_root.find(".//vae")
+    vae = None
+    if vae_elem is not None:
+        vae_hash = vae_elem.find("hash").text
+        vae = Resource(hash=vae_hash)
+
+    # Extract other parameters
+    positive_prompt_text = xml_root.find(".//positive-prompt").text
+    negative_prompt_text = xml_root.find(".//negative-prompt").text if xml_root.find(".//negative_prompt") is not None else None
+    image_width_px = int(xml_root.find(".//width").text)
+    image_height_px = int(xml_root.find(".//height").text)
+    generation_steps = int(xml_root.find(".//steps").text)
+    sampler_name = xml_root.find(".//sampler").text
+    cfg_scale = float(xml_root.find(".//cfg-scale").text)
+    seed = xml_root.find(".//seed").text
+    clip_skip = int(xml_root.find(".//clip-skip").text)
+
+    # Create and return the parsed Prompt object
+    return Prompt(
+        base_model=base_model,
+        loras=loras,
+        embeddings=embeddings,
+        vae=vae,
+        positive_prompt_text=positive_prompt_text,
+        negative_prompt_text=negative_prompt_text,
+        image_width_px=image_width_px,
+        image_height_px=image_height_px,
+        generation_steps=generation_steps,
+        sampler_name=sampler_name,
+        cfg_scale=cfg_scale,
+        seed=seed,
+        clip_skip=clip_skip
+    )
 
 async def set_base_model(base_model_url: str):
     pass
@@ -264,26 +348,10 @@ async def set_priority():
 async def enter_base_model_selection():
     await civitai_page.get_by_role("button", name="Swap").click()
 
-# async def enter_advanced_mode():
-#     await civitai_page.locator("#mantine-r9q-body label").first.click()
-
-# async def select_base_model_by_normal_click():
-#     await civitai_page.locator("div").filter(has_text=re.compile(r"^Pony Diffusion V6 XLSelect$")).get_by_role("button").click()
-
-# async def select_base_model_by_create_button():
-#     await civitai_page.goto("https://civitai.com/models/257749?modelVersionId=290640")
-#     await civitai_page.get_by_role("main").get_by_role("button", name="Create").click()
-
-async def toggle_additional_resources_accordion():
-    await civitai_page.get_by_role("button", name="Additional Resources 1/9 Add").click()
-
-async def set_additional_resource_wheight():
-    await civitai_page.locator("#mantine-rim").fill("6")
-
 async def generate():
     await civitai_page.get_by_role("button", name="Generate").click()
 
-async def inject(prompt):
+async def inject(prompt: Prompt):
     # await set_base_model(prompt.base_model_url)
     await write_positive_prompt("positive prompt")
     await write_negative_prompt("negative prompt")
@@ -326,7 +394,8 @@ async def inject_prompt(file: UploadFile = File(...)):
             print("XML validation failed: " + errors.last_error)
         
         prompt = parse_prompt(root)
-        await inject(prompt)
+        print(prompt.model_dump())
+        # await inject(prompt)
 
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
