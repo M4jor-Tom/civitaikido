@@ -401,6 +401,7 @@ async def inject(prompt: Prompt):
         await set_ratio_by_text(ratio_selector_text)
     await toggle_image_properties_accordion()
     await set_cfg_scale(prompt.cfg_scale)
+    await set_sampler(prompt.sampler_name)
     await set_steps(prompt.generation_steps)
     await set_seed(prompt.seed)
 
