@@ -32,10 +32,13 @@ civitai_selectors: dict[str, str] = {
 browser = None
 civitai_page = None
 signed_in_civitai_generation_url: str = None
+first_session_preparation: bool = True
 civitai_generation_url: str = 'https://civitai.com/generate'
 civitai_user_page_url: str = 'https://civitai.com/user/account'
 browser_ready_event = asyncio.Event()
 global_timeout: int = 60000
+
+model_search_input_selector: str = 'div > div > div > div > div > div > input[placeholder="Search Civitai"]'
 
 class URLInput(BaseModel):
     url: str
@@ -49,7 +52,7 @@ class LoraWheight(BaseModel):
 
 class Prompt(BaseModel):
     base_model: Resource
-    loras: list[LoraWheight]
+    loraWheights: list[LoraWheight]
     embeddings: list[Resource]
     vae: Resource | None
     positive_prompt_text: str
@@ -71,6 +74,7 @@ class Prompt(BaseModel):
             return 'Landscape1216x832'
         elif self.image_width_px == 1024 and self.image_height_px == 1024:
             return 'Square1024x1024'
+        return None
 
 async def try_action(action_name: str, callback):
     try:
@@ -157,9 +161,10 @@ async def confirm_start_generating_yellow_button():
 async def claim_buzz():
     await click_if_visible("claim_buzz", civitai_page.locator('button:has-text("Claim 25 Buzz")'))
 
-async def prepare_session():
+async def prepare_session(first_session_preparation: bool):
     await remove_cookies()
-    await skip_getting_started()
+    if first_session_preparation:
+        await skip_getting_started()
     await confirm_start_generating_yellow_button()
     await claim_buzz()
     # await enter_parameters_perspective()
@@ -168,7 +173,7 @@ async def prepare_session():
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
-    global browser, civitai_page, signed_in_civitai_generation_url
+    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation
 
     print(f"⏳ Waiting for URL to initialize the browser...")
 
@@ -212,8 +217,7 @@ async def init_browser():
 
     print("✅ Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
-    await prepare_session()
-
+    await prepare_session(first_session_preparation)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -234,13 +238,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 @app.post("/open_browser")
-async def open_browser(data: URLInput):
+async def open_browser(data: URLInput, ask_first_session_preparation: bool):
     """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
-    global signed_in_civitai_generation_url
+    global signed_in_civitai_generation_url, first_session_preparation
 
     if not data.url.startswith("http"):
         raise HTTPException(status_code=400, detail="Invalid URL format")
 
+    first_session_preparation = ask_first_session_preparation
     signed_in_civitai_generation_url = data.url
     return {"message": "URL set successfully; Session prepared for xml injection", "url": signed_in_civitai_generation_url}
 
@@ -250,11 +255,11 @@ def parse_prompt(xml_root) -> Prompt:
     base_model = Resource(hash=base_model_hash)
 
     # Extract Loras and their weights
-    loras = []
+    loraWheights = []
     for lora_elem in xml_root.findall(".//resources/lora"):
         lora_hash = lora_elem.find("hash").text
         lora_weight = float(lora_elem.find("wheight").text)
-        loras.append(LoraWheight(
+        loraWheights.append(LoraWheight(
             lora=Resource(hash=lora_hash),
             wheight=lora_weight
         ))
@@ -274,7 +279,7 @@ def parse_prompt(xml_root) -> Prompt:
 
     # Extract other parameters
     positive_prompt_text = xml_root.find(".//positive-prompt").text
-    negative_prompt_text = xml_root.find(".//negative-prompt").text if xml_root.find(".//negative_prompt") is not None else None
+    negative_prompt_text = xml_root.find(".//negative-prompt").text if xml_root.find(".//negative-prompt") is not None else None
     image_width_px = int(xml_root.find(".//width").text)
     image_height_px = int(xml_root.find(".//height").text)
     generation_steps = int(xml_root.find(".//steps").text)
@@ -286,7 +291,7 @@ def parse_prompt(xml_root) -> Prompt:
     # Create and return the parsed Prompt object
     return Prompt(
         base_model=base_model,
-        loras=loras,
+        loraWheights=loraWheights,
         embeddings=embeddings,
         vae=vae,
         positive_prompt_text=positive_prompt_text,
@@ -300,36 +305,45 @@ def parse_prompt(xml_root) -> Prompt:
         clip_skip=clip_skip
     )
 
-async def set_base_model(base_model_url: str):
-    pass
+async def add_resource_by_hash(resource_hash: str):
+    await civitai_page.locator(model_search_input_selector).fill(resource_hash)
+    await asyncio.sleep(5)
+    await civitai_page.locator("img[src][class][style][alt][loading]").last.click()
+    await civitai_page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
+    await civitai_page.locator('button[data-activity="create:model"]').click()
+    await enter_generation_perspective()
+
+async def set_lora_weight(lora_weight: int):
+    await civitai_page.locator("//*[text()='Additional Resources']").click()
+    await asyncio.sleep(5)
+    await civitai_page.locator("//*[div/div/div/div/text()='Additional Resources']/following-sibling::*//input[last()][@type][@max][@min][@step][@inputmode]").fill(str(lora_weight))
 
 async def write_positive_prompt(positive_text_prompt: str):
     await civitai_page.get_by_role("textbox", name="Your prompt goes here...").fill(positive_text_prompt)
 
 async def write_negative_prompt(negative_text_prompt: str):
-    await civitai_page.get_by_role("textbox", name="Negative Prompt").fill(negative_text_prompt)
+    async def interact():
+        await civitai_page.get_by_role("textbox", name="Negative Prompt").fill(negative_text_prompt)
+    await try_action("write_negative_prompt", interact)
 
-async def set_ratio_portrait():
-    await civitai_page.locator("label").filter(has_text="Portrait832x1216").click()
-
-async def set_ratio_landscape():
-    await civitai_page.locator("label").filter(has_text="Landscape1216x832").click()
-
-async def set_ratio_square():
-    await civitai_page.locator("label").filter(has_text="Square1024x1024").click()
+async def set_ratio_by_text(ratio_text: str):
+    await civitai_page.locator("label").filter(has_text=ratio_text).click()
 
 async def toggle_image_properties_accordion():
     await civitai_page.get_by_role("button", name="Advanced").click()
 
 async def set_cfg_scale(cfg_scale: int):
-    await civitai_page.locator("#input_cfgScale-label + div > :nth-child(2)").fill(str(cfg_scale))
+    async def interact():
+        await civitai_page.locator("#input_cfgScale-label + div > :nth-child(2) input").wait_for(timeout=global_timeout)
+        await civitai_page.locator("#input_cfgScale-label + div > :nth-child(2) input").fill(str(cfg_scale))
+    await try_action('set_cfg_scale', interact)
 
 async def set_sampler(sampler: str):
     await civitai_page.locator("#input_sampler").click()
     print(await civitai_page.locator("#input_sampler-label + div + div").all_text_contents())
 
 async def set_steps(steps: int):
-    await civitai_page.locator("#input_steps-label + div > :nth-child(2)").fill(str(steps))
+    await civitai_page.locator("#input_steps-label + div > :nth-child(2) input").fill(str(steps))
 
 async def set_seed(seed: str):
     await civitai_page.get_by_role("textbox", name="Random").fill(seed)
@@ -352,16 +366,24 @@ async def generate():
     await civitai_page.get_by_role("button", name="Generate").click()
 
 async def inject(prompt: Prompt):
-    # await set_base_model(prompt.base_model_url)
-    await write_positive_prompt("positive prompt")
-    await write_negative_prompt("negative prompt")
-    await set_ratio_portrait()
-    # await set_ratio_landscape()
-    # await set_ratio_square()
+    await add_resource_by_hash(prompt.base_model.hash)
+    for loraWheight in prompt.loraWheights:
+        await add_resource_by_hash(loraWheight.lora.hash)
+        await set_lora_weight(loraWheight.wheight)
+    for embedding in prompt.embeddings:
+        await add_resource_by_hash(embedding.hash)
+    if prompt.vae is not None:
+        await add_resource_by_hash(prompt.vae.hash)
+    await write_positive_prompt(prompt.positive_prompt_text)
+    if prompt.negative_prompt_text is not None:
+        await write_negative_prompt(prompt.negative_prompt_text)
+    ratio_selector_text: str | None = prompt.ratio_selector_text
+    if ratio_selector_text is not None:
+        await set_ratio_by_text(ratio_selector_text)
     await toggle_image_properties_accordion()
-    await set_cfg_scale(4)
-    await set_steps(30)
-    await set_seed("test_seed")
+    await set_cfg_scale(prompt.cfg_scale)
+    await set_steps(prompt.generation_steps)
+    await set_seed(prompt.seed)
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...)):
@@ -395,7 +417,7 @@ async def inject_prompt(file: UploadFile = File(...)):
         
         prompt = parse_prompt(root)
         print(prompt.model_dump())
-        # await inject(prompt)
+        await inject(prompt)
 
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
