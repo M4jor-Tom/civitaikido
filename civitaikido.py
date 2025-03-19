@@ -128,18 +128,18 @@ async def enter_parameters_perspective():
 
 async def enable_mature_content():
     async def interact():
-        await civitai_page.locator('div:has-text("Show mature content")').first.click()
-        await civitai_page.locator('div:has-text("Blur mature content")').first.click()
-        # await civitai_page.locator('div:has-text("PG")').first.click()
-        await civitai_page.locator('div:has-text("Safe for work. No naughty stuff")').first.click()
-        # await civitai_page.locator('div:has-text("PG-13")').first.click()
-        await civitai_page.locator('div:has-text("Revealing clothing, violence, or light gore")').first.click()
-        # await civitai_page.locator('div:has-text("R")').first.click()
-        await civitai_page.locator('div:has-text("Adult themes and situations, partial nudity, graphic violence, or death")').first.click()
-        # await civitai_page.locator('div:has-text("X")').first.click()
-        await civitai_page.locator('div:has-text("Graphic nudity, adult objects, or settings")').first.click()
-        # await civitai_page.locator('div:has-text("XXX")').first.click()
-        await civitai_page.locator('div:has-text("Overtly sexual or disturbing graphic content")').first.click()
+        await civitai_page.locator('//*[text()="Show mature content")').first.click()
+        await civitai_page.locator('//*[text()="Blur mature content")').first.click()
+        # await civitai_page.locator('//*[text()="PG")').first.click()
+        await civitai_page.locator('//*[text()="Safe for work. No naughty stuff")').first.click()
+        # await civitai_page.locator('//*[text()="PG-13")').first.click()
+        await civitai_page.locator('//*[text()="Revealing clothing, violence, or light gore")').first.click()
+        # await civitai_page.locator('//*[text()="R")').first.click()
+        await civitai_page.locator('//*[text()="Adult themes and situations, partial nudity, graphic violence, or death")').first.click()
+        # await civitai_page.locator('//*[text()="X")').first.click()
+        await civitai_page.locator('//*[text()="Graphic nudity, adult objects, or settings")').first.click()
+        # await civitai_page.locator('//*[text()="XXX")').first.click()
+        await civitai_page.locator('//*[text()="Overtly sexual or disturbing graphic content")').first.click()
     await try_action("enable_mature_content", interact)
 
 async def enter_generation_perspective():
@@ -167,8 +167,9 @@ async def prepare_session(first_session_preparation: bool):
         await skip_getting_started()
     await confirm_start_generating_yellow_button()
     await claim_buzz()
-    # await enter_parameters_perspective()
-    # await enable_mature_content()
+    if first_session_preparation:
+        await enter_parameters_perspective()
+        await enable_mature_content()
     await enter_generation_perspective()
 
 async def init_browser():
@@ -313,10 +314,11 @@ async def add_resource_by_hash(resource_hash: str):
     await civitai_page.locator('button[data-activity="create:model"]').click()
     await enter_generation_perspective()
 
-async def set_lora_weight(lora_weight: int):
+async def open_additional_resources_accordion():
     await civitai_page.locator("//*[text()='Additional Resources']").click()
-    await asyncio.sleep(5)
-    await civitai_page.locator("//*[div/div/div/div/text()='Additional Resources']/following-sibling::*//input[last()][@type][@max][@min][@step][@inputmode]").fill(str(lora_weight))
+
+async def set_lora_weight(lora_weight: int):
+    await civitai_page.locator("(//*[div/div/div/div/text()='Additional Resources']/following-sibling::*//input[@type][@max][@min][@step][@inputmode])[1]").fill(str(lora_weight))
 
 async def write_positive_prompt(positive_text_prompt: str):
     await civitai_page.get_by_role("textbox", name="Your prompt goes here...").fill(positive_text_prompt)
@@ -367,6 +369,8 @@ async def generate():
 
 async def inject(prompt: Prompt):
     await add_resource_by_hash(prompt.base_model.hash)
+    await open_additional_resources_accordion()
+    await asyncio.sleep(2)
     for loraWheight in prompt.loraWheights:
         await add_resource_by_hash(loraWheight.lora.hash)
         await set_lora_weight(loraWheight.wheight)
