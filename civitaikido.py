@@ -17,24 +17,11 @@ COLOR_ERROR = "\033[91m"    # Red
 COLOR_WARNING = "\033[93m"  # Yellow
 COLOR_RESET = "\033[0m"     # Reset color
 
-civitai_selectors: dict[str, str] = {
-    'positivePromptArea': "#input_prompt",
-    'negativePromptArea': "#input_negativePrompt",
-    'cfgScaleHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div:nth-child(1) > div > div.mantine-Slider-root.flex-1.mantine-15k342w > input[type=hidden]",
-    'cfgScaleTextInput': "#mantine-rh",
-    'samplerHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div.mantine-InputWrapper-root.mantine-Select-root.mantine-1m3pqry > div > input[type=hidden]",
-    'samplerSearchInput': "#input_sampler",
-    'stepsHiddenInput': "#mantine-rf-panel-advanced > div > div > div > div.relative.flex.flex-col.gap-3 > div:nth-child(3) > div > div.mantine-Slider-root.flex-1.mantine-15k342w > input[type=hidden]",
-    'stepsTextInput': "#mantine-rj"
-}
-
 # Global variables
 browser = None
 civitai_page = None
 signed_in_civitai_generation_url: str = None
 first_session_preparation: bool = True
-civitai_generation_url: str = 'https://civitai.com/generate'
-civitai_user_page_url: str = 'https://civitai.com/user/account'
 browser_ready_event = asyncio.Event()
 global_timeout: int = 60000
 
