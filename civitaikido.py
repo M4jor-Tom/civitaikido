@@ -124,18 +124,18 @@ async def enter_parameters_perspective():
 
 async def enable_mature_content():
     async def interact():
-        await civitai_page.locator('//*[text()="Show mature content")').first.click()
-        await civitai_page.locator('//*[text()="Blur mature content")').first.click()
-        # await civitai_page.locator('//*[text()="PG")').first.click()
-        await civitai_page.locator('//*[text()="Safe for work. No naughty stuff")').first.click()
-        # await civitai_page.locator('//*[text()="PG-13")').first.click()
-        await civitai_page.locator('//*[text()="Revealing clothing, violence, or light gore")').first.click()
-        # await civitai_page.locator('//*[text()="R")').first.click()
-        await civitai_page.locator('//*[text()="Adult themes and situations, partial nudity, graphic violence, or death")').first.click()
-        # await civitai_page.locator('//*[text()="X")').first.click()
-        await civitai_page.locator('//*[text()="Graphic nudity, adult objects, or settings")').first.click()
-        # await civitai_page.locator('//*[text()="XXX")').first.click()
-        await civitai_page.locator('//*[text()="Overtly sexual or disturbing graphic content")').first.click()
+        await civitai_page.locator('//*[text()="Show mature content"]').first.click()
+        await civitai_page.locator('//*[text()="Blur mature content"]').first.click()
+        # await civitai_page.locator('//*[text()="PG"]').first.click()
+        # await civitai_page.locator('//*[text()="Safe for work. No naughty stuff"]').first.click()
+        # await civitai_page.locator('//*[text()="PG-13"]').first.click()
+        await civitai_page.locator('//*[text()="Revealing clothing, violence, or light gore"]').first.click()
+        # await civitai_page.locator('//*[text()="R"]').first.click()
+        await civitai_page.locator('//*[text()="Adult themes and situations, partial nudity, graphic violence, or death"]').first.click()
+        # await civitai_page.locator('//*[text()="X"]').first.click()
+        await civitai_page.locator('//*[text()="Graphic nudity, adult objects, or settings"]').first.click()
+        # await civitai_page.locator('//*[text()="XXX"]').first.click()
+        await civitai_page.locator('//*[text()="Overtly sexual or disturbing graphic content"]').first.click()
     await try_action("enable_mature_content", interact)
 
 async def enter_generation_perspective():
@@ -159,6 +159,7 @@ async def claim_buzz():
 
 async def prepare_session(first_session_preparation: bool):
     await remove_cookies()
+    await enter_generation_perspective()
     if first_session_preparation:
         await skip_getting_started()
     await confirm_start_generating_yellow_button()
