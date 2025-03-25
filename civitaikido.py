@@ -7,7 +7,6 @@ from playwright.async_api import async_playwright
 from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
 import asyncio
-import requests
 
 from pydantic import BaseModel, computed_field
 
@@ -26,6 +25,12 @@ browser_ready_event = asyncio.Event()
 global_timeout: int = 60000
 
 model_search_input_selector: str = 'div > div > div > div > div > div > input[placeholder="Search Civitai"]'
+generation_unavailable_selector: str = "//text()='4 jobs in queue'"
+remaining_buzz_count_and_no_more_buzz_triangle_svg_selector: str = "//div[text()='Generate']/following-sibling::div/span/div/div/*"
+generation_button_selector: str = "//button//*[text()='Generate']"
+generation_info_button_selector: str = "//button[.//*[text()='Generate']]/following-sibling::*"
+creator_tip_selector: str = "//div[text()='Creator Tip']//input"
+civitai_tip_selector: str = "//div[text()='Civitai Tip']//input"
 
 class URLInput(BaseModel):
     url: str
@@ -49,7 +54,7 @@ class Prompt(BaseModel):
     generation_steps: int
     sampler_name: str
     cfg_scale: float
-    seed: str
+    seed: str | None
     clip_skip: int
 
     @computed_field
@@ -86,28 +91,6 @@ async def click_if_visible(action_name: str, locator):
         log_done("Clicked locator for " + action_name)
     else:
         log_skip("Locator for " + action_name + " not visible")
-
-def fetch_xsd(xsd_url: str) -> ET.XMLSchema:
-    """Fetches an XSD file from a URL and returns an XMLSchema object.
-
-    Args:
-        xsd_url: URL of the XSD schema.
-
-    Returns:
-        XMLSchema object if successfully fetched, else None.
-    """
-    try:
-        response = requests.get(xsd_url, timeout=10)
-        response.raise_for_status()  # Raise an error for HTTP failures
-
-        xsd_tree = ET.XML(response.content)
-        return ET.XMLSchema(xsd_tree)
-    except requests.RequestException as e:
-        print(f"{COLOR_ERROR}[ERROR] Failed to fetch XSD from {xsd_url}: {e}{COLOR_RESET}")
-        return None
-    except ET.XMLSyntaxError as e:
-        print(f"{COLOR_ERROR}[ERROR] Invalid XSD format from {xsd_url}: {e}{COLOR_RESET}")
-        return None
 
 async def remove_cookies():
     async def interact():
@@ -157,17 +140,31 @@ async def confirm_start_generating_yellow_button():
 async def claim_buzz():
     await click_if_visible("claim_buzz", civitai_page.locator('button:has-text("Claim 25 Buzz")'))
 
+async def set_input_quantity():
+    log_wait("set_input_quantity")
+    await civitai_page.locator("input#input_quantity").fill("4")
+    log_done("set_input_quantity")
+
+async def give_no_tips():
+    log_wait("give_no_tips")
+    await civitai_page.locator(generation_info_button_selector).click()
+    await civitai_page.locator(creator_tip_selector).fill("0%")
+    await civitai_page.locator(civitai_tip_selector).fill("0%")
+    log_done("give_no_tips")
+
 async def prepare_session(first_session_preparation: bool):
     await remove_cookies()
-    await enter_generation_perspective()
     if first_session_preparation:
         await skip_getting_started()
+    await enter_generation_perspective()
     await confirm_start_generating_yellow_button()
     await claim_buzz()
     if first_session_preparation:
         await enter_parameters_perspective()
         await enable_mature_content()
     await enter_generation_perspective()
+    await set_input_quantity()
+    # await give_no_tips()
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
@@ -283,7 +280,7 @@ def parse_prompt(xml_root) -> Prompt:
     generation_steps = int(xml_root.find(".//steps").text)
     sampler_name = xml_root.find(".//sampler").text
     cfg_scale = float(xml_root.find(".//cfg-scale").text)
-    seed = xml_root.find(".//seed").text
+    seed = xml_root.find(".//seed").text if xml_root.find(".//seed") is not None else None
     clip_skip = int(xml_root.find(".//clip-skip").text)
 
     # Create and return the parsed Prompt object
@@ -365,10 +362,35 @@ async def set_seed(seed: str):
     await civitai_page.get_by_role("textbox", name="Random").fill(seed)
     log_done("set_seed: " + seed)
 
-async def generate():
-    log_wait("generate")
-    await civitai_page.get_by_role("button", name="Generate").click()
-    log_done("generate")
+# periodical_generation: bool = True
+# @app.post("/stop_generate_periodically")
+# async def generate_periodically():
+#     log_wait("generate_periodically")
+#     global periodical_generation
+#     periodical_generation = False
+
+# @app.post("/start_generate_periodically")
+# async def generate_periodically():
+#     log_wait("generate_periodically")
+#     global periodical_generation
+#     periodical_generation = True
+#     while periodical_generation:
+#         await civitai_page.locator(generation_button_selector).click()
+#         await asyncio.sleep(3)
+
+@app.post("/generate_till_no_buzz")
+async def generate_till_no_buzz():
+    log_wait("generate_till_no_buzz")
+    buzz_remain: bool = True
+    while buzz_remain is True:
+        job_available: bool = await civitai_page.locator(generation_unavailable_selector).count() == 0
+        buzz_remain: bool = await civitai_page.locator(remaining_buzz_count_and_no_more_buzz_triangle_svg_selector).count() == 1
+        print("job_available" + str(job_available))
+        print("buzz_remain" + str(buzz_remain))
+        if job_available:
+            await civitai_page.locator(generation_button_selector).click()
+        await asyncio.sleep(3)
+    log_done("generate_till_no_buzz")
 
 async def inject(prompt: Prompt):
     await add_resource_by_hash(prompt.base_model.hash)
@@ -391,7 +413,9 @@ async def inject(prompt: Prompt):
     await set_cfg_scale(prompt.cfg_scale)
     await set_sampler(prompt.sampler_name)
     await set_steps(prompt.generation_steps)
-    await set_seed(prompt.seed)
+    if prompt.seed is not None:
+        await set_seed(prompt.seed)
+    await generate_till_no_buzz()
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...)):
@@ -405,23 +429,6 @@ async def inject_prompt(file: UploadFile = File(...)):
         xml_content = await file.read()
         xml_tree = ET.ElementTree(ET.fromstring(xml_content))
         root = xml_tree.getroot()
-
-        # Extract xsi:noNamespaceSchemaLocation (URL or file path)
-        xsi_ns = "http://www.w3.org/2001/XMLSchema-instance"
-        xsd_location = root.attrib.get(f"{{{xsi_ns}}}noNamespaceSchemaLocation")
-
-        # Parse the XSD schema
-        if xsd_location.startswith(("http://", "https://")):
-            xsd_schema = fetch_xsd(xsd_location)
-            if not xsd_schema:
-                print("Failed to fetch the XSD")
-
-        # Validate XML against the schema
-        if xsd_schema.validate(xml_tree):
-            print("XML is valid against the provided XSD")
-        else:
-            errors = xsd_schema.error_log
-            print("XML validation failed: " + errors.last_error)
         
         prompt = parse_prompt(root)
         print(prompt.model_dump())
