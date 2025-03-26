@@ -1,6 +1,5 @@
 #!./python
 
-import re
 import lxml.etree as ET
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from playwright.async_api import async_playwright
@@ -25,12 +24,14 @@ browser_ready_event = asyncio.Event()
 global_timeout: int = 60000
 
 model_search_input_selector: str = 'div > div > div > div > div > div > input[placeholder="Search Civitai"]'
-generation_unavailable_selector: str = "//text()='4 jobs in queue'"
+generation_unavailable_selector: str = "//*[text()='4 jobs in queue']"
 remaining_buzz_count_and_no_more_buzz_triangle_svg_selector: str = "//div[text()='Generate']/following-sibling::div/span/div/div/*"
+no_more_buzz_triangle_svg_selector: str = "svg.tabler-icon.tabler-icon-alert-triangle-filled"
 generation_button_selector: str = "//button//*[text()='Generate']"
 generation_info_button_selector: str = "//button[.//*[text()='Generate']]/following-sibling::*"
 creator_tip_selector: str = "//div[text()='Creator Tip']//input"
 civitai_tip_selector: str = "//div[text()='Civitai Tip']//input"
+images_selector: str = "//img[contains(@src,'orchestration.civitai.com')]"
 
 class URLInput(BaseModel):
     url: str
@@ -381,18 +382,20 @@ async def set_seed(seed: str):
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
     log_wait("generate_till_no_buzz")
+    await give_no_tips()
     buzz_remain: bool = True
     while buzz_remain is True:
-        job_available: bool = await civitai_page.locator(generation_unavailable_selector).count() == 0
-        buzz_remain: bool = await civitai_page.locator(remaining_buzz_count_and_no_more_buzz_triangle_svg_selector).count() == 1
-        print("job_available" + str(job_available))
-        print("buzz_remain" + str(buzz_remain))
-        if job_available:
+        job_available: bool = (await civitai_page.locator(generation_unavailable_selector).count()) == 0
+        # buzz_remain: bool = (await civitai_page.locator(remaining_buzz_count_and_no_more_buzz_triangle_svg_selector).count()) == 1
+        buzz_remain: bool = (await civitai_page.locator(no_more_buzz_triangle_svg_selector).count()) == 0
+        print("job_available: " + str(job_available))
+        print("buzz_remain: " + str(buzz_remain))
+        if job_available and buzz_remain:
             await civitai_page.locator(generation_button_selector).click()
         await asyncio.sleep(3)
     log_done("generate_till_no_buzz")
 
-async def inject(prompt: Prompt):
+async def inject(prompt: Prompt, injectSeed: bool):
     await add_resource_by_hash(prompt.base_model.hash)
     await open_additional_resources_accordion()
     await asyncio.sleep(2)
@@ -413,12 +416,12 @@ async def inject(prompt: Prompt):
     await set_cfg_scale(prompt.cfg_scale)
     await set_sampler(prompt.sampler_name)
     await set_steps(prompt.generation_steps)
-    if prompt.seed is not None:
+    if prompt.seed is not None and injectSeed:
         await set_seed(prompt.seed)
-    await generate_till_no_buzz()
+    # await generate_till_no_buzz()
 
 @app.post("/inject_prompt")
-async def inject_prompt(file: UploadFile = File(...)):
+async def inject_prompt(file: UploadFile = File(...), injectSeed: bool = False):
     """Validates an uploaded XML file against an XSD schema from a given URL.
 
     Returns:
@@ -432,7 +435,7 @@ async def inject_prompt(file: UploadFile = File(...)):
         
         prompt = parse_prompt(root)
         print(prompt.model_dump())
-        await inject(prompt)
+        await inject(prompt, injectSeed)
 
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
