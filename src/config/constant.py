@@ -7,6 +7,7 @@ generation_info_button_selector: str = "//button[.//*[text()='Generate']]/follow
 creator_tip_selector: str = "//div[text()='Creator Tip']//input"
 civitai_tip_selector: str = "//div[text()='Civitai Tip']//input"
 images_selector: str = "//img[contains(@src,'orchestration.civitai.com')]"
+page_model_hash_selector: str = "(//*[*/text()='Hash']/following-sibling::*/*/*)[2]/*/text()"
 
 global_timeout: int = 60000
 
