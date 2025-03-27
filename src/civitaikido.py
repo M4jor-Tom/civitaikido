@@ -103,14 +103,14 @@ async def give_no_tips():
     await civitai_page.locator(civitai_tip_selector).fill("0%")
     log_done("give_no_tips")
 
-async def prepare_session(first_session_preparation: bool):
+async def prepare_session(ask_first_session_preparation: bool):
     await remove_cookies()
-    if first_session_preparation:
+    if ask_first_session_preparation:
         await skip_getting_started()
     await enter_generation_perspective()
     await confirm_start_generating_yellow_button()
     await claim_buzz()
-    if first_session_preparation:
+    if ask_first_session_preparation:
         await enter_parameters_perspective()
         await enable_mature_content()
     await enter_generation_perspective()
@@ -289,7 +289,7 @@ async def generate_till_no_buzz():
         await asyncio.sleep(3)
     log_done("generate_till_no_buzz")
 
-async def inject(prompt: Prompt, injectSeed: bool):
+async def inject(prompt: Prompt, inject_seed: bool):
     await add_resource_by_hash(prompt.base_model.hash)
     await open_additional_resources_accordion()
     await asyncio.sleep(2)
@@ -310,12 +310,12 @@ async def inject(prompt: Prompt, injectSeed: bool):
     await set_cfg_scale(prompt.cfg_scale)
     await set_sampler(prompt.sampler_name)
     await set_steps(prompt.generation_steps)
-    if prompt.seed is not None and injectSeed:
+    if prompt.seed is not None and inject_seed:
         await set_seed(prompt.seed)
     # await generate_till_no_buzz()
 
 @app.post("/inject_prompt")
-async def inject_prompt(file: UploadFile = File(...), injectSeed: bool = False):
+async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False):
     """Validates an uploaded XML file against an XSD schema from a given URL.
 
     Returns:
@@ -329,7 +329,7 @@ async def inject_prompt(file: UploadFile = File(...), injectSeed: bool = False):
         
         prompt = readXmlPromptService.parse_prompt(root)
         print(prompt.model_dump())
-        await inject(prompt, injectSeed)
+        await inject(prompt, inject_seed)
 
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
