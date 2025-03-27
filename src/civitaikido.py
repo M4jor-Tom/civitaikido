@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import asyncio
 
 from src.config.constant import *
-from src.config.env import *
 from src.model import Prompt, URLInput
 from src.service import ReadXmlPromptService
 
@@ -15,7 +14,7 @@ readXmlPromptService: ReadXmlPromptService = ReadXmlPromptService()
 # Global variables
 browser = None
 civitai_page = None
-signed_in_civitai_generation_url: str = None
+signed_in_civitai_generation_url: str | None = None
 first_session_preparation: bool = True
 browser_ready_event = asyncio.Event()
 
@@ -257,36 +256,17 @@ async def set_seed(seed: str):
     await civitai_page.get_by_role("textbox", name="Random").fill(seed)
     log_done("set_seed: " + seed)
 
-# periodical_generation: bool = True
-# @app.post("/stop_generate_periodically")
-# async def generate_periodically():
-#     log_wait("generate_periodically")
-#     global periodical_generation
-#     periodical_generation = False
-
-# @app.post("/start_generate_periodically")
-# async def generate_periodically():
-#     log_wait("generate_periodically")
-#     global periodical_generation
-#     periodical_generation = True
-#     while periodical_generation:
-#         await civitai_page.locator(generation_button_selector).click()
-#         await asyncio.sleep(3)
-
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
     log_wait("generate_till_no_buzz")
     await give_no_tips()
     buzz_remain: bool = True
     while buzz_remain is True:
-        job_available: bool = (await civitai_page.locator(generation_unavailable_selector).count()) == 0
-        # buzz_remain: bool = (await civitai_page.locator(remaining_buzz_count_and_no_more_buzz_triangle_svg_selector).count()) == 1
         buzz_remain: bool = (await civitai_page.locator(no_more_buzz_triangle_svg_selector).count()) == 0
-        print("job_available: " + str(job_available))
         print("buzz_remain: " + str(buzz_remain))
-        if job_available and buzz_remain:
+        if buzz_remain:
             await civitai_page.locator(generation_button_selector).click()
-        await asyncio.sleep(3)
+            await asyncio.sleep(3)
     log_done("generate_till_no_buzz")
 
 async def inject(prompt: Prompt, inject_seed: bool):
