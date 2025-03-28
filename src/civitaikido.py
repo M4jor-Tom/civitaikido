@@ -10,7 +10,7 @@ from src.model import Prompt, URLInput
 from src.service import ReadXmlPromptService, PrepareCivitaiPage
 from src.util import log_wait, log_done, log_skip, try_action
 
-readXmlPromptService: ReadXmlPromptService = ReadXmlPromptService()
+read_xml_prompt_service: ReadXmlPromptService = ReadXmlPromptService()
 
 # Global variables
 browser = None
@@ -178,6 +178,7 @@ async def generate_till_no_buzz():
         buzz_remain: bool = (await civitai_page.locator(no_more_buzz_triangle_svg_selector).count()) == 0
         print("buzz_remain: " + str(buzz_remain))
         if buzz_remain:
+            await civitai_page.locator(generation_button_selector).wait_for(timeout=120000)
             await civitai_page.locator(generation_button_selector).click()
             await asyncio.sleep(3)
     log_done("generate_till_no_buzz")
@@ -219,7 +220,7 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False)
         xml_tree = ET.ElementTree(ET.fromstring(xml_content))
         root = xml_tree.getroot()
         
-        prompt = readXmlPromptService.parse_prompt(root)
+        prompt = read_xml_prompt_service.parse_prompt(root)
         print(prompt.model_dump())
         await inject(prompt, inject_seed)
 
