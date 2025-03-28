@@ -1,5 +1,5 @@
 import lxml.etree as ET
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from playwright.async_api import async_playwright
 from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
@@ -20,11 +20,12 @@ first_session_preparation: bool = True
 browser_ready_event = asyncio.Event()
 prepare_civitai_page: PrepareCivitaiPage | None = None
 image_extractor: ImageExtractor | None = None
-file_name: str | None = None
+browser_initialized: bool = False
+generation_default_dir: str = "civitai/generation/images"
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
-    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page, image_extractor
+    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page, image_extractor, browser_initialized
 
     log_wait("Browser to initialise...")
 
@@ -71,6 +72,7 @@ async def init_browser():
     prepare_civitai_page = PrepareCivitaiPage(civitai_page)
     image_extractor = ImageExtractor(civitai_page)
     await prepare_civitai_page.prepare_session(first_session_preparation)
+    browser_initialized = True
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -90,8 +92,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.post("/open_browser")
-async def open_browser(data: URLInput, ask_first_session_preparation: bool):
+async def open_browser(data: URLInput, ask_first_session_preparation: bool, await_browser_initialized: bool):
     """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
     global signed_in_civitai_generation_url, first_session_preparation
 
@@ -100,7 +101,15 @@ async def open_browser(data: URLInput, ask_first_session_preparation: bool):
 
     first_session_preparation = ask_first_session_preparation
     signed_in_civitai_generation_url = data.url
-    return {"message": "URL set successfully; Session prepared for xml injection", "url": signed_in_civitai_generation_url}
+    log_wait("message: URL set successfully; Session prepared for xml injection, url: " + signed_in_civitai_generation_url)
+    if await_browser_initialized:
+        while not browser_initialized:
+            await asyncio.sleep(1)
+
+@app.post("/open_browser")
+async def rest_open_browser(data: URLInput, ask_first_session_preparation: bool):
+    await open_browser(data, ask_first_session_preparation, False)
+    return {"message": "Browser prepared", "url": data.url}
 
 async def add_resource_by_hash(resource_hash: str):
     global prepare_civitai_page
@@ -175,6 +184,7 @@ async def give_no_tips():
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
     log_wait("generate_till_no_buzz")
+    log_wait("launch_all_generations")
     await give_no_tips()
     buzz_remain: bool = True
     while buzz_remain is True:
@@ -184,6 +194,8 @@ async def generate_till_no_buzz():
             await civitai_page.locator(generation_button_selector).wait_for(timeout=120000)
             await civitai_page.locator(generation_button_selector).click()
             await asyncio.sleep(3)
+    log_done("launch_all_generations")
+    await civitai_page.locator(all_jobs_done_selector).wait_for(timeout=120000)
     log_done("generate_till_no_buzz")
 
 async def inject(prompt: Prompt, inject_seed: bool):
@@ -212,7 +224,6 @@ async def inject(prompt: Prompt, inject_seed: bool):
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False):
-    global file_name
     """Validates an uploaded XML file against an XSD schema from a given URL.
 
     Returns:
@@ -227,13 +238,23 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False)
         prompt = read_xml_prompt_service.parse_prompt(root)
         print(prompt.model_dump())
         await inject(prompt, inject_seed)
-        file_name = file.name
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.get("/extract_images")
-async def extract_images(extraction_dir_prefix: str):
-    extraction_dir: str = extraction_dir_prefix + "/" + file_name if file_name is not None else extraction_dir_prefix + "/unknown_prompt"
+async def extract_images(extraction_dir: str = generation_default_dir):
     await image_extractor.save_images_from_page(extraction_dir)
+
+@app.post("/inject_generate_extract")
+async def inject_generate_extract(
+        session_url: str = Form(...),
+        extraction_dir: str = Form(generation_default_dir),
+        file: UploadFile = File(...),
+        inject_seed: bool = False
+    ):
+    await open_browser(URLInput(url=session_url), True, True)
+    await inject_prompt(file, inject_seed)
+    await generate_till_no_buzz()
+    await extract_images(extraction_dir)

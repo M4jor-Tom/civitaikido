@@ -2,6 +2,7 @@ model_search_input_selector: str = 'div > div > div > div > div > div > input[pl
 generation_unavailable_selector: str = "//*[text()='4 jobs in queue']"
 remaining_buzz_count_and_no_more_buzz_triangle_svg_selector: str = "//div[text()='Generate']/following-sibling::div/span/div/div/*"
 no_more_buzz_triangle_svg_selector: str = "svg.tabler-icon.tabler-icon-alert-triangle-filled"
+all_jobs_done_selector: str = "//*[text()='4 jobs available']"
 generation_button_selector: str = "//button//*[text()='Generate']"
 generation_info_button_selector: str = "//button[.//*[text()='Generate']]/following-sibling::*"
 creator_tip_selector: str = "//div[text()='Creator Tip']//input"

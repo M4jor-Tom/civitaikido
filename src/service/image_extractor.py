@@ -15,13 +15,13 @@ class ImageExtractor:
     async def enter_feed_view(self):
         await self.page.locator("//*[text()='Feed']").first.click()
 
-    async def save_images_from_page(self, output_dir) -> None:
+    async def save_images_from_page(self, output_dir_in_home: str) -> None:
         """Save all image files from a web page using Playwright.
 
         Args:
-            url: The URL of the web page to scrape images from.
-            output_dir: Directory where images will be saved.
+            output_dir_in_home: Directory where images will be saved.
         """
+        output_dir: str = os.environ['HOME'] + '/' + output_dir_in_home
         await self.enter_feed_view()
         os.makedirs(output_dir, exist_ok=True)
         img_elements = await self.page.locator(images_selector).all()
