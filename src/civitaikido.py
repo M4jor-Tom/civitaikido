@@ -21,7 +21,7 @@ browser_ready_event = asyncio.Event()
 prepare_civitai_page: PrepareCivitaiPage | None = None
 image_extractor: ImageExtractor | None = None
 browser_initialized: bool = False
-generation_default_dir: str = "civitai/generation/images"
+generation_default_dir: str = "civitai/images/generation"
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
