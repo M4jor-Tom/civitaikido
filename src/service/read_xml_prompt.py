@@ -12,7 +12,7 @@ class ReadXmlPromptService:
         lora_weights = []
         for lora_elem in xml_root.findall(".//resources/lora"):
             lora_hash = lora_elem.find("hash").text
-            lora_weight = float(lora_elem.find("wheight").text)
+            lora_weight = float(lora_elem.find("weight").text)
             lora_weights.append(LoraWeight(
                 lora=Resource(hash=lora_hash),
                 weight=lora_weight
