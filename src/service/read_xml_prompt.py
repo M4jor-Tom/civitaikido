@@ -1,21 +1,21 @@
 from src.model.resource import Resource
-from src.model.lora_wheight import LoraWheight
+from src.model.lora_weight import LoraWeight
 from src.model.prompt import Prompt
 
-class ReadXmlPromptService():
+class ReadXmlPromptService:
     def parse_prompt(self, xml_root) -> Prompt:
         # Extract base model information
         base_model_hash = xml_root.find(".//base-model/hash").text
         base_model = Resource(hash=base_model_hash)
 
         # Extract Loras and their weights
-        loraWheights = []
+        lora_weights = []
         for lora_elem in xml_root.findall(".//resources/lora"):
             lora_hash = lora_elem.find("hash").text
             lora_weight = float(lora_elem.find("wheight").text)
-            loraWheights.append(LoraWheight(
+            lora_weights.append(LoraWeight(
                 lora=Resource(hash=lora_hash),
-                wheight=lora_weight
+                weight=lora_weight
             ))
 
         # Extract embeddings
@@ -45,7 +45,7 @@ class ReadXmlPromptService():
         # Create and return the parsed Prompt object
         return Prompt(
             base_model=base_model,
-            loraWheights=loraWheights,
+            lora_weights=lora_weights,
             embeddings=embeddings,
             vae=vae,
             positive_prompt_text=positive_prompt_text,

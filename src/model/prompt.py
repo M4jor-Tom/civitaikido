@@ -1,10 +1,10 @@
 from pydantic import BaseModel, computed_field
 from src.model.resource import Resource
-from src.model.lora_wheight import LoraWheight
+from src.model.lora_weight import LoraWeight
 
 class Prompt(BaseModel):
     base_model: Resource
-    loraWheights: list[LoraWheight]
+    lora_weights: list[LoraWeight]
     embeddings: list[Resource]
     vae: Resource | None
     positive_prompt_text: str

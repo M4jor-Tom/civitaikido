@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from src.model.resource import Resource
 
-class LoraWheight(BaseModel):
+class LoraWeight(BaseModel):
     lora: Resource
-    wheight: float
+    weight: float

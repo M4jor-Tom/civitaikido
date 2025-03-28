@@ -273,9 +273,9 @@ async def inject(prompt: Prompt, inject_seed: bool):
     await add_resource_by_hash(prompt.base_model.hash)
     await open_additional_resources_accordion()
     await asyncio.sleep(2)
-    for loraWheight in prompt.loraWheights:
-        await add_resource_by_hash(loraWheight.lora.hash)
-        await set_lora_weight(loraWheight.wheight)
+    for lora_weight in prompt.lora_weights:
+        await add_resource_by_hash(lora_weight.lora.hash)
+        await set_lora_weight(lora_weight.weight)
     for embedding in prompt.embeddings:
         await add_resource_by_hash(embedding.hash)
     if prompt.vae is not None:
