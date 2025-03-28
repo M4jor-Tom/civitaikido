@@ -7,7 +7,8 @@ import asyncio
 
 from src.config.constant import *
 from src.model import Prompt, URLInput
-from src.service import ReadXmlPromptService
+from src.service import ReadXmlPromptService, PrepareCivitaiPage
+from src.util import log_wait, log_done, log_skip, try_action
 
 readXmlPromptService: ReadXmlPromptService = ReadXmlPromptService()
 
@@ -17,108 +18,11 @@ civitai_page = None
 signed_in_civitai_generation_url: str | None = None
 first_session_preparation: bool = True
 browser_ready_event = asyncio.Event()
-
-def log_wait(message: str):
-        print("⏳ [WAIT] " + message)
-
-def log_done(message: str):
-        print("✅ [DONE] " + message)
-
-def log_skip(message: str):
-        print("⚠️ [SKIP] " + message)
-
-async def try_action(action_name: str, callback):
-    try:
-        log_wait(action_name)
-        await callback()
-        log_done(action_name)
-    except Exception as e:
-        log_skip(action_name + ": " + str(e))
-
-async def click_if_visible(action_name: str, locator):
-    if await locator.is_visible():
-        await locator.click()
-        log_done("Clicked locator for " + action_name)
-    else:
-        log_skip("Locator for " + action_name + " not visible")
-
-async def remove_cookies():
-    async def interact():
-        await civitai_page.get_by_text("Customise choices").wait_for(state="visible", timeout=global_timeout)
-        await civitai_page.get_by_text("Customise choices").click()
-        await civitai_page.get_by_text("Save preferences").click()
-    await try_action("remove_cookies", interact)
-
-async def enter_parameters_perspective():
-    async def interact():
-        await civitai_page.locator('div[title]').first.click()
-        await civitai_page.locator('a[href="/user/account"]').first.click()
-    await try_action("enter_parameters_perspective", interact)
-
-async def enable_mature_content():
-    async def interact():
-        await civitai_page.locator('//*[text()="Show mature content"]').first.click()
-        await civitai_page.locator('//*[text()="Blur mature content"]').first.click()
-        # await civitai_page.locator('//*[text()="PG"]').first.click()
-        # await civitai_page.locator('//*[text()="Safe for work. No naughty stuff"]').first.click()
-        # await civitai_page.locator('//*[text()="PG-13"]').first.click()
-        await civitai_page.locator('//*[text()="Revealing clothing, violence, or light gore"]').first.click()
-        # await civitai_page.locator('//*[text()="R"]').first.click()
-        await civitai_page.locator('//*[text()="Adult themes and situations, partial nudity, graphic violence, or death"]').first.click()
-        # await civitai_page.locator('//*[text()="X"]').first.click()
-        await civitai_page.locator('//*[text()="Graphic nudity, adult objects, or settings"]').first.click()
-        # await civitai_page.locator('//*[text()="XXX"]').first.click()
-        await civitai_page.locator('//*[text()="Overtly sexual or disturbing graphic content"]').first.click()
-    await try_action("enable_mature_content", interact)
-
-async def enter_generation_perspective():
-    async def interact():
-        await civitai_page.locator('button[data-activity="create:navbar"]').first.click()
-        await civitai_page.locator('a[href="/generate"]').first.click()
-    await try_action("enter_generation_perspective", interact)
-    # await civitai_page.goto(civitai_generation_url)
-
-async def skip_getting_started():
-    async def interact():
-        await civitai_page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=global_timeout)
-        await civitai_page.get_by_role("button", name="Skip").click()
-    await try_action("skip_getting_started", interact)
-
-async def confirm_start_generating_yellow_button():
-    await click_if_visible("confirm_start_generating_yellow_button", civitai_page.get_by_role("button", name="I Confirm, Start Generating"))
-
-async def claim_buzz():
-    await click_if_visible("claim_buzz", civitai_page.locator('button:has-text("Claim 25 Buzz")'))
-
-async def set_input_quantity():
-    log_wait("set_input_quantity")
-    await civitai_page.locator("input#input_quantity").fill("4")
-    log_done("set_input_quantity")
-
-async def give_no_tips():
-    log_wait("give_no_tips")
-    await civitai_page.locator(generation_info_button_selector).click()
-    await civitai_page.locator(creator_tip_selector).fill("0%")
-    await civitai_page.locator(civitai_tip_selector).fill("0%")
-    log_done("give_no_tips")
-
-async def prepare_session(ask_first_session_preparation: bool):
-    await remove_cookies()
-    if ask_first_session_preparation:
-        await skip_getting_started()
-    await enter_generation_perspective()
-    await confirm_start_generating_yellow_button()
-    await claim_buzz()
-    if ask_first_session_preparation:
-        await enter_parameters_perspective()
-        await enable_mature_content()
-    await enter_generation_perspective()
-    await set_input_quantity()
-    # await give_no_tips()
+prepare_civitai_page: PrepareCivitaiPage | None = None
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
-    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation
+    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page
 
     log_wait("Browser to initialise...")
 
@@ -162,7 +66,8 @@ async def init_browser():
 
     log_done("Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
-    await prepare_session(first_session_preparation)
+    prepare_civitai_page = PrepareCivitaiPage(civitai_page)
+    await prepare_civitai_page.prepare_session(first_session_preparation)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -195,13 +100,14 @@ async def open_browser(data: URLInput, ask_first_session_preparation: bool):
     return {"message": "URL set successfully; Session prepared for xml injection", "url": signed_in_civitai_generation_url}
 
 async def add_resource_by_hash(resource_hash: str):
+    global prepare_civitai_page
     log_wait("add_resource_by_hash: " + resource_hash)
     await civitai_page.locator(model_search_input_selector).fill(resource_hash)
     await asyncio.sleep(5)
     await civitai_page.locator("img[src][class][style][alt][loading]").last.click(force=True)
     await civitai_page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
     await civitai_page.locator('button[data-activity="create:model"]').click()
-    await enter_generation_perspective()
+    await prepare_civitai_page.enter_generation_perspective()
     log_done("add_resource_by_hash: " + resource_hash)
 
 async def open_additional_resources_accordion():
@@ -256,6 +162,13 @@ async def set_seed(seed: str):
     await civitai_page.get_by_role("textbox", name="Random").fill(seed)
     log_done("set_seed: " + seed)
 
+async def give_no_tips():
+    log_wait("give_no_tips")
+    await civitai_page.locator(generation_info_button_selector).click()
+    await civitai_page.locator(creator_tip_selector).fill("0%")
+    await civitai_page.locator(civitai_tip_selector).fill("0%")
+    log_done("give_no_tips")
+
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
     log_wait("generate_till_no_buzz")
@@ -292,7 +205,6 @@ async def inject(prompt: Prompt, inject_seed: bool):
     await set_steps(prompt.generation_steps)
     if prompt.seed is not None and inject_seed:
         await set_seed(prompt.seed)
-    # await generate_till_no_buzz()
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False):
