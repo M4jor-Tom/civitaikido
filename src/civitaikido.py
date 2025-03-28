@@ -7,7 +7,7 @@ import asyncio
 
 from src.config.constant import *
 from src.model import Prompt, URLInput
-from src.service import ReadXmlPromptService, PrepareCivitaiPage
+from src.service import ReadXmlPromptService, PrepareCivitaiPage, ImageExtractor
 from src.util import log_wait, log_done, log_skip, try_action
 
 read_xml_prompt_service: ReadXmlPromptService = ReadXmlPromptService()
@@ -19,10 +19,12 @@ signed_in_civitai_generation_url: str | None = None
 first_session_preparation: bool = True
 browser_ready_event = asyncio.Event()
 prepare_civitai_page: PrepareCivitaiPage | None = None
+image_extractor: ImageExtractor | None = None
+file_name: str | None = None
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
-    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page
+    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page, image_extractor
 
     log_wait("Browser to initialise...")
 
@@ -67,6 +69,7 @@ async def init_browser():
     log_done("Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
     prepare_civitai_page = PrepareCivitaiPage(civitai_page)
+    image_extractor = ImageExtractor(civitai_page)
     await prepare_civitai_page.prepare_session(first_session_preparation)
 
 @asynccontextmanager
@@ -209,6 +212,7 @@ async def inject(prompt: Prompt, inject_seed: bool):
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False):
+    global file_name
     """Validates an uploaded XML file against an XSD schema from a given URL.
 
     Returns:
@@ -223,8 +227,13 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False)
         prompt = read_xml_prompt_service.parse_prompt(root)
         print(prompt.model_dump())
         await inject(prompt, inject_seed)
-
+        file_name = file.name
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+@app.get("/extract_images")
+async def extract_images(extraction_dir_prefix: str):
+    extraction_dir: str = extraction_dir_prefix + "/" + file_name if file_name is not None else extraction_dir_prefix + "/unknown_prompt"
+    await image_extractor.save_images_from_page(extraction_dir)

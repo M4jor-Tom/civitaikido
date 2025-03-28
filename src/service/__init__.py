@@ -1,2 +1,3 @@
 from .read_xml_prompt import ReadXmlPromptService
 from .prepare_civitai_page import PrepareCivitaiPage
+from .image_extractor import ImageExtractor
