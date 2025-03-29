@@ -257,11 +257,10 @@ async def extract_images(extraction_dir: str = generation_default_dir):
 @app.post("/inject_generate_extract")
 async def inject_generate_extract(
         session_url: str = Form(...),
-        extraction_dir: str = Form(generation_default_dir),
         file: UploadFile = File(...),
         inject_seed: bool = False
     ):
     await open_browser(URLInput(url=session_url), True, True)
     await inject_prompt(file, inject_seed)
     await generate_till_no_buzz()
-    await extract_images(extraction_dir)
+    await extract_images(generation_default_dir)
