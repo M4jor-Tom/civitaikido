@@ -4,12 +4,14 @@ from playwright.async_api import async_playwright
 from playwright_stealth.stealth import stealth_async
 from contextlib import asynccontextmanager
 import asyncio
+import logging
 
 from src.config.constant import *
 from src.model import Prompt, URLInput
 from src.service import ReadXmlPromptService, PrepareCivitaiPage, ImageExtractor
-from src.util import log_wait, log_done, log_skip, try_action
+from src.util import SKIP_PREFIX, WAIT_PREFIX, DONE_PREFIX, try_action
 
+logger = logging.getLogger(__name__)
 read_xml_prompt_service: ReadXmlPromptService = ReadXmlPromptService()
 
 # Global variables
@@ -27,13 +29,13 @@ async def init_browser():
     """Initializes the browser when the URL is set."""
     global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page, image_extractor, browser_initialized
 
-    log_wait("Browser to initialise...")
+    logger.info(WAIT_PREFIX + "Browser to initialise...")
 
     # Wait until an URL is set
     while signed_in_civitai_generation_url is None:
         await asyncio.sleep(1)
 
-    log_done("URL received: " + signed_in_civitai_generation_url)
+    logger.info(DONE_PREFIX + "URL received: " + signed_in_civitai_generation_url)
 
     # Start Playwright
     playwright = await async_playwright().start()
@@ -65,14 +67,14 @@ async def init_browser():
     try:
         await civitai_page.wait_for_load_state("domcontentloaded", timeout=global_timeout)
     except Exception:
-        log_skip("Page load state took too long, continuing anyway.")
+        logger.warn(SKIP_PREFIX + "Page load state took too long, continuing anyway.")
 
     await asyncio.sleep(5)
 
     # Apply stealth mode
     await stealth_async(civitai_page)
 
-    log_done("Browser initialized with anti-bot protections")
+    logger.info(DONE_PREFIX + "Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
     prepare_civitai_page = PrepareCivitaiPage(civitai_page)
     image_extractor = ImageExtractor(civitai_page)
@@ -82,7 +84,7 @@ async def init_browser():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan function that starts FastAPI without blocking Swagger and browser startup."""
-    print("🚀 FastAPI is starting...")
+    logger.info("🚀 FastAPI is starting...")
 
     # Start the browser initialization in a background task
     asyncio.create_task(init_browser())
@@ -93,7 +95,7 @@ async def lifespan(app: FastAPI):
     if browser:
         await civitai_page.close()
         await browser.close()
-        print("🛑 Browser closed!")
+        logger.info("🛑 Browser closed!")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -106,7 +108,7 @@ async def open_browser(data: URLInput, ask_first_session_preparation: bool, awai
 
     first_session_preparation = ask_first_session_preparation
     signed_in_civitai_generation_url = data.url
-    log_wait("message: URL set successfully; Session prepared for xml injection, url: " + signed_in_civitai_generation_url)
+    logger.info(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + signed_in_civitai_generation_url)
     if await_browser_initialized:
         while not browser_initialized:
             await asyncio.sleep(1)
@@ -118,29 +120,29 @@ async def rest_open_browser(data: URLInput, ask_first_session_preparation: bool)
 
 async def add_resource_by_hash(resource_hash: str):
     global prepare_civitai_page
-    log_wait("add_resource_by_hash: " + resource_hash)
+    logger.info(WAIT_PREFIX + "add_resource_by_hash: " + resource_hash)
     await civitai_page.locator(model_search_input_selector).fill(resource_hash)
     await asyncio.sleep(5)
     await civitai_page.locator("img[src][class][style][alt][loading]").last.click(force=True)
     await civitai_page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
     await civitai_page.locator('button[data-activity="create:model"]').click()
     await prepare_civitai_page.enter_generation_perspective()
-    log_done("add_resource_by_hash: " + resource_hash)
+    logger.info(DONE_PREFIX + "add_resource_by_hash: " + resource_hash)
 
 async def open_additional_resources_accordion():
-    log_wait("open_additional_resources_accordion")
+    logger.info(WAIT_PREFIX + "open_additional_resources_accordion")
     await civitai_page.locator("//*[text()='Additional Resources']").click()
-    log_done("open_additional_resources_accordion")
+    logger.info(DONE_PREFIX + "open_additional_resources_accordion")
 
 async def set_lora_weight(lora_weight: float):
-    log_wait("set_lora_weight: " + str(lora_weight))
+    logger.info(WAIT_PREFIX + "set_lora_weight: " + str(lora_weight))
     await civitai_page.locator("(//*[div/div/div/div/text()='Additional Resources']/following-sibling::*//input[@type][@max][@min][@step][@inputmode])[1]").fill(str(lora_weight))
-    log_done("set_lora_weight: " + str(lora_weight))
+    logger.info(DONE_PREFIX + "set_lora_weight: " + str(lora_weight))
 
 async def write_positive_prompt(positive_text_prompt: str):
-    log_wait("write_positive_prompt")
+    logger.info(WAIT_PREFIX + "write_positive_prompt")
     await civitai_page.get_by_role("textbox", name="Your prompt goes here...").fill(positive_text_prompt)
-    log_done("write_positive_prompt")
+    logger.info(DONE_PREFIX + "write_positive_prompt")
 
 async def write_negative_prompt(negative_text_prompt: str):
     async def interact():
@@ -148,14 +150,14 @@ async def write_negative_prompt(negative_text_prompt: str):
     await try_action("write_negative_prompt", interact)
 
 async def set_ratio_by_text(ratio_text: str):
-    log_wait("set_ratio_by_text: " + ratio_text)
+    logger.info(WAIT_PREFIX + "set_ratio_by_text: " + ratio_text)
     await civitai_page.locator("label").filter(has_text=ratio_text).click()
-    log_done("set_ratio_by_text: " + ratio_text)
+    logger.info(DONE_PREFIX + "set_ratio_by_text: " + ratio_text)
 
 async def toggle_image_properties_accordion():
-    log_wait("toggle_image_properties_accordion")
+    logger.info(WAIT_PREFIX + "toggle_image_properties_accordion")
     await civitai_page.get_by_role("button", name="Advanced").click()
-    log_done("toggle_image_properties_accordion")
+    logger.info(DONE_PREFIX + "toggle_image_properties_accordion")
 
 async def set_cfg_scale(cfg_scale: float):
     async def interact():
@@ -164,44 +166,44 @@ async def set_cfg_scale(cfg_scale: float):
     await try_action('set_cfg_scale: ' + str(cfg_scale), interact)
 
 async def set_sampler(sampler: str):
-    log_wait("set_sampler: " + sampler)
+    logger.info(WAIT_PREFIX + "set_sampler: " + sampler)
     await civitai_page.locator("#input_sampler").click()
     await civitai_page.locator("//div[@role='combobox']/following-sibling::div//div[text()='" + sampler + "']").click()
-    log_done("set_sampler: " + sampler)
+    logger.info(DONE_PREFIX + "set_sampler: " + sampler)
 
 async def set_steps(steps: int):
-    log_wait("set_steps: " + str(steps))
+    logger.info(WAIT_PREFIX + "set_steps: " + str(steps))
     await civitai_page.locator("#input_steps-label + div > :nth-child(2) input").fill(str(steps))
-    log_done("set_steps: " + str(steps))
+    logger.info(DONE_PREFIX + "set_steps: " + str(steps))
 
 async def set_seed(seed: str):
-    log_wait("set_seed: " + seed)
+    logger.info(WAIT_PREFIX + "set_seed: " + seed)
     await civitai_page.get_by_role("textbox", name="Random").fill(seed)
-    log_done("set_seed: " + seed)
+    logger.info(DONE_PREFIX + "set_seed: " + seed)
 
 async def give_no_tips():
-    log_wait("give_no_tips")
+    logger.info(WAIT_PREFIX + "give_no_tips")
     await civitai_page.locator(generation_info_button_selector).click()
     await civitai_page.locator(creator_tip_selector).fill("0%")
     await civitai_page.locator(civitai_tip_selector).fill("0%")
-    log_done("give_no_tips")
+    logger.info(DONE_PREFIX + "give_no_tips")
 
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
-    log_wait("generate_till_no_buzz")
-    log_wait("launch_all_generations")
+    logger.info(WAIT_PREFIX + "generate_till_no_buzz")
+    logger.info(WAIT_PREFIX + "launch_all_generations")
     await give_no_tips()
     buzz_remain: bool = True
     while buzz_remain is True:
         buzz_remain: bool = (await civitai_page.locator(no_more_buzz_triangle_svg_selector).count()) == 0
-        print("buzz_remain: " + str(buzz_remain))
+        logger.info("buzz_remain: " + str(buzz_remain))
         if buzz_remain:
             await civitai_page.locator(generation_button_selector).wait_for(timeout=120000)
             await civitai_page.locator(generation_button_selector).click()
             await asyncio.sleep(3)
-    log_done("launch_all_generations")
+    logger.info(DONE_PREFIX + "launch_all_generations")
     await civitai_page.locator(all_jobs_done_selector).wait_for(timeout=120000)
-    log_done("generate_till_no_buzz")
+    logger.info(DONE_PREFIX + "generate_till_no_buzz")
 
 async def inject(prompt: Prompt, inject_seed: bool):
     await add_resource_by_hash(prompt.base_model.hash)
@@ -243,7 +245,7 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False)
         root = xml_tree.getroot()
         
         prompt = read_xml_prompt_service.parse_prompt(root)
-        print(prompt.model_dump())
+        logger.info(prompt.model_dump())
         await inject(prompt, inject_seed)
     except ET.XMLSyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML format: {str(e)}")

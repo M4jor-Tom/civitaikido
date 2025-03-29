@@ -2,9 +2,12 @@ from playwright.async_api import async_playwright
 import requests
 import os
 from urllib.parse import urlparse
+import logging
 
 from src.config import images_selector
+from src.util import DONE_PREFIX
 
+logger = logging.getLogger(__name__)
 
 class ImageExtractor:
     page: any
@@ -40,6 +43,6 @@ class ImageExtractor:
                 filepath = os.path.join(output_dir, filename)
                 with open(filepath, "wb") as f:
                     f.write(response.content)
-                print(f"Saved: {filepath}")
+                logger.info(DONE_PREFIX + f"Saved: {filepath}")
             except Exception as e:
-                print(f"Failed to download {img_url}: {e}")
+                logger.error(f"Failed to download {img_url}: {e}")

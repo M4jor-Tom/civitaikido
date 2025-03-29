@@ -1,16 +1,19 @@
-from src.util import *
+import logging
+from src.util.custom_logging import DONE_PREFIX, WAIT_PREFIX, SKIP_PREFIX
+
+logger = logging.getLogger(__name__)
 
 async def try_action(action_name: str, callback):
     try:
-        log_wait(action_name)
+        logger.info(WAIT_PREFIX + action_name)
         await callback()
-        log_done(action_name)
+        logger.info(DONE_PREFIX + action_name)
     except Exception as e:
-        log_skip(action_name + ": " + str(e))
+        logger.warn(SKIP_PREFIX + action_name + ": " + str(e))
 
 async def click_if_visible(action_name: str, locator):
     if await locator.is_visible():
         await locator.click()
-        log_done("Clicked locator for " + action_name)
+        logger.info(DONE_PREFIX + "Clicked locator for " + action_name)
     else:
-        log_skip("Locator for " + action_name + " not visible")
+        logger.warn(SKIP_PREFIX + "Locator for " + action_name + " not visible")

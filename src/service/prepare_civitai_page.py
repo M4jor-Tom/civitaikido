@@ -1,6 +1,8 @@
+import logging
 from src.config import global_timeout
-from src.util import try_action, click_if_visible, log_wait, log_done
+from src.util import try_action, click_if_visible, WAIT_PREFIX, DONE_PREFIX
 
+logger = logging.getLogger(__name__)
 
 class PrepareCivitaiPage:
     page: any
@@ -64,9 +66,9 @@ class PrepareCivitaiPage:
         await click_if_visible("claim_buzz", self.page.locator('button:has-text("Claim 25 Buzz")'))
 
     async def set_input_quantity(self):
-        log_wait("set_input_quantity")
+        logger.info(WAIT_PREFIX + "set_input_quantity")
         await self.page.locator("input#input_quantity").fill("4")
-        log_done("set_input_quantity")
+        logger.info(DONE_PREFIX + "set_input_quantity")
 
     async def prepare_session(self, ask_first_session_preparation: bool):
         await self.remove_cookies()
