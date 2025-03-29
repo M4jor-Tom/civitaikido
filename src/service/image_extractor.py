@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse
 import logging
 
-from src.constant import images_selector
+from src.constant import images_selector, feed_perspective_button_selector
 from src.util import DONE_PREFIX
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class ImageExtractor:
         self.page = page
 
     async def enter_feed_view(self):
-        await self.page.locator("//*[text()='Feed']").first.click()
+        await self.page.locator(feed_perspective_button_selector).first.click()
 
     async def save_images_from_page(self, output_dir_in_home: str) -> None:
         """Save all image files from a web page using Playwright.
