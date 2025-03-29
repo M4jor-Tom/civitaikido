@@ -1,6 +1,7 @@
 import logging
-from src.config import global_timeout
-from src.util import try_action, click_if_visible, WAIT_PREFIX, DONE_PREFIX
+from src.constant import global_timeout
+from src.util import try_action, click_if_visible
+from src.constant import WAIT_PREFIX, DONE_PREFIX
 
 logger = logging.getLogger(__name__)
 

@@ -6,10 +6,10 @@ from contextlib import asynccontextmanager
 import asyncio
 import logging
 
-from src.config.constant import *
 from src.model import Prompt, URLInput
 from src.service import ReadXmlPromptService, PrepareCivitaiPage, ImageExtractor
-from src.util import SKIP_PREFIX, WAIT_PREFIX, DONE_PREFIX, try_action
+from src.util import try_action
+from src.constant import *
 
 logger = logging.getLogger(__name__)
 read_xml_prompt_service: ReadXmlPromptService = ReadXmlPromptService()

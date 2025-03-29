@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse
 import logging
 
-from src.config import images_selector
+from src.constant import images_selector
 from src.util import DONE_PREFIX
 
 logger = logging.getLogger(__name__)

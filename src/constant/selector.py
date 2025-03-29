@@ -9,11 +9,3 @@ creator_tip_selector: str = "//div[text()='Creator Tip']//input"
 civitai_tip_selector: str = "//div[text()='Civitai Tip']//input"
 images_selector: str = "//img[contains(@src,'orchestration.civitai.com')]"
 page_model_hash_selector: str = "(//*[*/text()='Hash']/following-sibling::*/*/*)[2]/*/text()"
-
-global_timeout: int = 60000
-
-# ANSI color codes for colored output
-COLOR_OK = "\033[92m"       # Green
-COLOR_ERROR = "\033[91m"    # Red
-COLOR_WARNING = "\033[93m"  # Yellow
-COLOR_RESET = "\033[0m"     # Reset color

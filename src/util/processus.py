@@ -1,5 +1,5 @@
 import logging
-from src.util.custom_logging import DONE_PREFIX, WAIT_PREFIX, SKIP_PREFIX
+from src.constant.logging_strips import DONE_PREFIX, WAIT_PREFIX, SKIP_PREFIX
 
 logger = logging.getLogger(__name__)
 
