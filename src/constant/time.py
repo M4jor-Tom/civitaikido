@@ -1,1 +1,1 @@
-global_timeout: int = 60000
+global_timeout: int = 300000

@@ -54,7 +54,7 @@ async def init_browser():
         # geolocation={"latitude": 43.1242, "longitude": 5.9280},
         permissions=["geolocation"]
     )
-    context.set_default_timeout(120000)
+    context.set_default_timeout(global_timeout)
 
     civitai_page = await context.new_page()
     # await civitai_page.add_init_script(path="stealth.m#in.js")
