@@ -10,3 +10,18 @@ civitai_tip_selector: str = "//div[text()='Civitai Tip']//input"
 images_selector: str = "//img[contains(@src,'orchestration.civitai.com')]"
 page_model_hash_selector: str = "(//*[*/text()='Hash']/following-sibling::*/*/*)[2]/*/text()"
 feed_perspective_button_selector: str = "//*[text()='Feed']"
+
+profile_icon_selector: str = 'div[title]'
+profile_settings_button_selector: str = 'a[href="/user/account"]'
+show_mature_content_selector: str = '//*[text()="Show mature content"]'
+blur_mature_content_selector: str = '//*[text()="Blur mature content"]'
+pg_13_content_selector: str = '//*[text()="Revealing clothing, violence, or light gore"]'
+r_content_selector: str = '//*[text()="Adult themes and situations, partial nudity, graphic violence, or death"]'
+x_content_selector: str = '//*[text()="Graphic nudity, adult objects, or settings"]'
+xxx_content_selector: str = '//*[text()="Overtly sexual or disturbing graphic content"]'
+
+create_prompt_header_button_selector: str = 'button[data-activity="create:navbar"]'
+generate_dropdown_option_selector: str = 'a[href="/generate"]'
+
+claim_buzz_button_selector: str = 'button:has-text("Claim 25 Buzz")'
+generation_quantity_input_selector: str = "input#input_quantity"

@@ -1,5 +1,8 @@
 import logging
-from src.constant import global_timeout
+from src.constant import global_timeout, profile_icon_selector, profile_settings_button_selector, \
+    show_mature_content_selector, blur_mature_content_selector, pg_13_content_selector, r_content_selector, \
+    x_content_selector, xxx_content_selector, create_prompt_header_button_selector, generate_dropdown_option_selector, \
+    claim_buzz_button_selector, generation_quantity_input_selector
 from src.util import try_action, click_if_visible
 from src.constant import WAIT_PREFIX, DONE_PREFIX
 
@@ -21,36 +24,27 @@ class CivitaiPagePreparator:
 
     async def enter_parameters_perspective(self):
         async def interact():
-            await self.page.locator('div[title]').first.click()
-            await self.page.locator('a[href="/user/account"]').first.click()
+            await self.page.locator(profile_icon_selector).first.click()
+            await self.page.locator(profile_settings_button_selector).first.click()
 
         await try_action("enter_parameters_perspective", interact)
 
     async def enable_mature_content(self):
         async def interact():
-            await self.page.locator('//*[text()="Show mature content"]').first.click()
-            await self.page.locator('//*[text()="Blur mature content"]').first.click()
-            # await self.page.locator('//*[text()="PG"]').first.click()
-            # await self.page.locator('//*[text()="Safe for work. No naughty stuff"]').first.click()
-            # await self.page.locator('//*[text()="PG-13"]').first.click()
-            await self.page.locator('//*[text()="Revealing clothing, violence, or light gore"]').first.click()
-            # await self.page.locator('//*[text()="R"]').first.click()
-            await self.page.locator(
-                '//*[text()="Adult themes and situations, partial nudity, graphic violence, or death"]').first.click()
-            # await self.page.locator('//*[text()="X"]').first.click()
-            await self.page.locator('//*[text()="Graphic nudity, adult objects, or settings"]').first.click()
-            # await self.page.locator('//*[text()="XXX"]').first.click()
-            await self.page.locator('//*[text()="Overtly sexual or disturbing graphic content"]').first.click()
+            await self.page.locator(show_mature_content_selector).first.click()
+            await self.page.locator(blur_mature_content_selector).first.click()
+            await self.page.locator(pg_13_content_selector).first.click()
+            await self.page.locator(r_content_selector).first.click()
+            await self.page.locator(x_content_selector).first.click()
+            await self.page.locator(xxx_content_selector).first.click()
 
         await try_action("enable_mature_content", interact)
 
     async def enter_generation_perspective(self):
         async def interact():
-            await self.page.locator('button[data-activity="create:navbar"]').first.click()
-            await self.page.locator('a[href="/generate"]').first.click()
-
+            await self.page.locator(create_prompt_header_button_selector).first.click()
+            await self.page.locator(generate_dropdown_option_selector).first.click()
         await try_action("enter_generation_perspective", interact)
-        # await self.page.goto(civitai_generation_url)
 
     async def skip_getting_started(self):
         async def interact():
@@ -64,11 +58,11 @@ class CivitaiPagePreparator:
                                self.page.get_by_role("button", name="I Confirm, Start Generating"))
 
     async def claim_buzz(self):
-        await click_if_visible("claim_buzz", self.page.locator('button:has-text("Claim 25 Buzz")'))
+        await click_if_visible("claim_buzz", self.page.locator(claim_buzz_button_selector))
 
     async def set_input_quantity(self):
         logger.info(WAIT_PREFIX + "set_input_quantity")
-        await self.page.locator("input#input_quantity").fill("4")
+        await self.page.locator(generation_quantity_input_selector).fill("4")
         logger.info(DONE_PREFIX + "set_input_quantity")
 
     async def prepare_civitai_page(self, ask_first_session_preparation: bool):
