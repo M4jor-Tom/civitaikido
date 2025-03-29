@@ -5,7 +5,7 @@ from src.constant import WAIT_PREFIX, DONE_PREFIX
 
 logger = logging.getLogger(__name__)
 
-class PrepareCivitaiPage:
+class CivitaiPagePreparator:
     page: any
 
     def __init__(self, page):
@@ -71,7 +71,7 @@ class PrepareCivitaiPage:
         await self.page.locator("input#input_quantity").fill("4")
         logger.info(DONE_PREFIX + "set_input_quantity")
 
-    async def prepare_session(self, ask_first_session_preparation: bool):
+    async def prepare_civitai_page(self, ask_first_session_preparation: bool):
         await self.remove_cookies()
         if ask_first_session_preparation:
             await self.skip_getting_started()

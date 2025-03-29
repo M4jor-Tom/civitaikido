@@ -7,12 +7,12 @@ import asyncio
 import logging
 
 from src.model import Prompt, URLInput
-from src.service import ReadXmlPromptService, PrepareCivitaiPage, ImageExtractor
+from src.service import PromptBuilder, CivitaiPagePreparator, ImageExtractor
 from src.util import try_action
 from src.constant import *
 
 logger = logging.getLogger(__name__)
-read_xml_prompt_service: ReadXmlPromptService = ReadXmlPromptService()
+prompt_builder: PromptBuilder = PromptBuilder()
 
 # Global variables
 browser = None
@@ -20,14 +20,14 @@ civitai_page = None
 signed_in_civitai_generation_url: str | None = None
 first_session_preparation: bool = True
 browser_ready_event = asyncio.Event()
-prepare_civitai_page: PrepareCivitaiPage | None = None
+civitai_page_preparator: CivitaiPagePreparator | None = None
 image_extractor: ImageExtractor | None = None
 browser_initialized: bool = False
 generation_default_dir: str = "civitai/images/generation"
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
-    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, prepare_civitai_page, image_extractor, browser_initialized
+    global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, civitai_page_preparator, image_extractor, browser_initialized
 
     logger.info(WAIT_PREFIX + "Browser to initialise...")
 
@@ -76,9 +76,9 @@ async def init_browser():
 
     logger.info(DONE_PREFIX + "Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
-    prepare_civitai_page = PrepareCivitaiPage(civitai_page)
+    civitai_page_preparator = CivitaiPagePreparator(civitai_page)
     image_extractor = ImageExtractor(civitai_page)
-    await prepare_civitai_page.prepare_session(first_session_preparation)
+    await civitai_page_preparator.prepare_civitai_page(first_session_preparation)
     browser_initialized = True
 
 @asynccontextmanager
@@ -119,14 +119,14 @@ async def rest_open_browser(data: URLInput, ask_first_session_preparation: bool)
     return {"message": "Browser prepared", "url": data.url}
 
 async def add_resource_by_hash(resource_hash: str):
-    global prepare_civitai_page
+    global civitai_page_preparator
     logger.info(WAIT_PREFIX + "add_resource_by_hash: " + resource_hash)
     await civitai_page.locator(model_search_input_selector).fill(resource_hash)
     await asyncio.sleep(5)
     await civitai_page.locator("img[src][class][style][alt][loading]").last.click(force=True)
     await civitai_page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
     await civitai_page.locator('button[data-activity="create:model"]').click()
-    await prepare_civitai_page.enter_generation_perspective()
+    await civitai_page_preparator.enter_generation_perspective()
     logger.info(DONE_PREFIX + "add_resource_by_hash: " + resource_hash)
 
 async def open_additional_resources_accordion():
@@ -244,7 +244,7 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False)
         xml_tree = ET.ElementTree(ET.fromstring(xml_content))
         root = xml_tree.getroot()
         
-        prompt = read_xml_prompt_service.parse_prompt(root)
+        prompt = prompt_builder.build_from_xml(root)
         logger.info(prompt.model_dump())
         await inject(prompt, inject_seed)
     except ET.XMLSyntaxError as e:

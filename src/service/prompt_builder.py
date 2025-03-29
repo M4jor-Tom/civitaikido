@@ -2,8 +2,8 @@ from src.model.resource import Resource
 from src.model.lora_weight import LoraWeight
 from src.model.prompt import Prompt
 
-class ReadXmlPromptService:
-    def parse_prompt(self, xml_root) -> Prompt:
+class PromptBuilder:
+    def build_from_xml(self, xml_root) -> Prompt:
         # Extract base model information
         base_model_hash = xml_root.find(".//base-model/hash").text
         base_model = Resource(hash=base_model_hash)
