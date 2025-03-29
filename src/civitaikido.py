@@ -229,6 +229,8 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False)
     Returns:
         A JSON response indicating whether the XML is valid or not.
     """
+    global generation_default_dir
+    generation_default_dir += "/" + str(file.filename).split('.xml')[0]
     try:
         # Read XML content
         xml_content = await file.read()
