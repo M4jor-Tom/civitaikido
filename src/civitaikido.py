@@ -43,14 +43,19 @@ async def init_browser():
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                    "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
         locale="en-US",
+        # locale="fr-FR",
         viewport={"width": 1920, "height": 1080},
         java_script_enabled=True,
         ignore_https_errors=True,
-        timezone_id="America/New_York",
-        permissions=["geolocation"],
+        # timezone_id="America/New_York",
+        timezone_id="Europe/Paris",
+        # geolocation={"latitude": 43.1242, "longitude": 5.9280},
+        permissions=["geolocation"]
     )
+    context.set_default_timeout(120000)
 
     civitai_page = await context.new_page()
+    # await civitai_page.add_init_script(path="stealth.m#in.js")
 
     # Load the provided URL
     await civitai_page.goto(signed_in_civitai_generation_url)
