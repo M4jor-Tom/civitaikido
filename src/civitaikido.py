@@ -8,6 +8,7 @@ import logging
 
 from src.service import PromptBuilder, CivitaiPagePreparator, ImageExtractor, PromptInjector, XmlParser
 from src.constant import *
+from src.service.images_generator import ImagesGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +24,14 @@ browser_initialized: bool = False
 civitai_page_preparator: CivitaiPagePreparator | None = None
 image_extractor: ImageExtractor | None = None
 prompt_injector: PromptInjector | None = None
+images_generator: ImagesGenerator | None = None
 prompt_builder: PromptBuilder = PromptBuilder()
 xml_parser: XmlParser = XmlParser()
 
 async def init_browser():
     """Initializes the browser when the URL is set."""
     global browser, civitai_page, signed_in_civitai_generation_url, first_session_preparation, \
-        civitai_page_preparator, image_extractor, browser_initialized, prompt_injector
+        civitai_page_preparator, image_extractor, browser_initialized, prompt_injector, images_generator
 
     logger.info(WAIT_PREFIX + "Browser to initialise...")
 
@@ -79,6 +81,7 @@ async def init_browser():
     logger.info(DONE_PREFIX + "Browser initialized with anti-bot protections")
     browser_ready_event.set()  # Notify that the browser is ready
     civitai_page_preparator = CivitaiPagePreparator(civitai_page)
+    images_generator = ImagesGenerator(civitai_page)
     image_extractor = ImageExtractor(civitai_page)
     prompt_injector = PromptInjector(civitai_page, civitai_page_preparator)
     await civitai_page_preparator.prepare_civitai_page(first_session_preparation)
@@ -123,7 +126,7 @@ async def rest_open_browser(url: str, ask_first_session_preparation: bool):
 
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
-    await prompt_injector.generate_till_no_buzz()
+    await images_generator.generate_till_no_buzz()
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False):
@@ -155,5 +158,5 @@ async def inject_generate_extract(
     ):
     await open_browser(session_url, True, True)
     await prompt_injector.inject(prompt_builder.build_from_xml(await xml_parser.parse_xml(file)), inject_seed)
-    await prompt_injector.generate_till_no_buzz()
+    await images_generator.generate_till_no_buzz()
     await image_extractor.save_images_from_page(generation_default_dir + "/" + str(file.filename).split('.xml')[0])
