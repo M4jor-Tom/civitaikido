@@ -5,18 +5,19 @@ from urllib.parse import urlparse
 import logging
 
 from src.constant import images_selector, feed_perspective_button_selector
+from .browser_manager import BrowserManager
 from src.util import DONE_PREFIX
 
 logger = logging.getLogger(__name__)
 
 class ImageExtractor:
-    page: any
+    browser_manager: BrowserManager
 
-    def __init__(self, page):
-        self.page = page
+    def __init__(self, browser_manager: BrowserManager):
+        self.browser_manager = browser_manager
 
     async def enter_feed_view(self):
-        await self.page.locator(feed_perspective_button_selector).first.click()
+        await self.browser_manager.page.locator(feed_perspective_button_selector).first.click()
 
     async def save_images_from_page(self, output_dir_in_home: str) -> None:
         """Save all image files from a web page using Playwright.
@@ -27,7 +28,7 @@ class ImageExtractor:
         output_dir: str = os.environ['HOME'] + '/' + output_dir_in_home
         await self.enter_feed_view()
         os.makedirs(output_dir, exist_ok=True)
-        img_elements = await self.page.locator(images_selector).all()
+        img_elements = await self.browser_manager.page.locator(images_selector).all()
         for i, img in enumerate(img_elements):
             src = await img.get_attribute("src")
             if not src:
