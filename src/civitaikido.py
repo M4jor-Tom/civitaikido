@@ -18,7 +18,6 @@ signed_in_civitai_generation_url: str | None = None
 first_session_preparation: bool = True
 browser_ready_event = asyncio.Event()
 browser_initialized: bool = False
-generation_default_dir: str = "civitai/images/generation"
 
 # Services
 civitai_page_preparator: CivitaiPagePreparator | None = None
@@ -154,7 +153,6 @@ async def inject_generate_extract(
         file: UploadFile = File(...),
         inject_seed: bool = False
     ):
-    global generation_default_dir
     await open_browser(session_url, True, True)
     await prompt_injector.inject(prompt_builder.build_from_xml(await xml_parser.parse_xml(file)), inject_seed)
     await prompt_injector.generate_till_no_buzz()
