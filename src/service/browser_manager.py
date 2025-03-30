@@ -78,3 +78,13 @@ class BrowserManager:
             await self.page.close()
             await self.browser.close()
             logger.info("🛑 Browser closed!")
+
+    async def open_browser(self, civitai_connection_url: str):
+        """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
+        if not civitai_connection_url.startswith("http"):
+            raise HTTPException(status_code=400, detail="Invalid URL format")
+
+        self.signed_in_civitai_generation_url = civitai_connection_url
+        logger.info(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
+        while not self.browser_initialized:
+            await asyncio.sleep(1)
