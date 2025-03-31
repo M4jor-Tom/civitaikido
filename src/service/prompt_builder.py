@@ -6,15 +6,17 @@ class PromptBuilder:
     def build_from_xml(self, xml_root) -> Prompt:
         # Extract base model information
         base_model_hash = xml_root.find(".//base-model/hash").text
-        base_model = Resource(hash=base_model_hash)
+        base_model_page_url = xml_root.find(".//base-model/page-url").text
+        base_model = Resource(hash=base_model_hash, page_url=base_model_page_url)
 
         # Extract Loras and their weights
         lora_weights = []
         for lora_elem in xml_root.findall(".//resources/lora"):
             lora_hash = lora_elem.find("hash").text
+            lora_page_url = lora_elem.find("page-url").text
             lora_weight = float(lora_elem.find("weight").text)
             lora_weights.append(LoraWeight(
-                lora=Resource(hash=lora_hash),
+                lora=Resource(hash=lora_hash, page_url=lora_page_url),
                 weight=lora_weight
             ))
 
@@ -22,14 +24,16 @@ class PromptBuilder:
         embeddings = []
         for embedding_elem in xml_root.findall(".//resources/embedding"):
             embedding_hash = embedding_elem.find("hash").text
-            embeddings.append(Resource(hash=embedding_hash))
+            embedding_page_url = embedding_elem.find("page-url").text
+            embeddings.append(Resource(hash=embedding_hash, page_url=embedding_page_url))
 
         # Extract VAE (optional)
         vae_elem = xml_root.find(".//vae")
         vae = None
         if vae_elem is not None:
             vae_hash = vae_elem.find("hash").text
-            vae = Resource(hash=vae_hash)
+            vae_page_url = vae_elem.find("page-url").text
+            vae = Resource(hash=vae_hash, page_url=vae_page_url)
 
         # Extract other parameters
         positive_prompt_text = xml_root.find(".//positive-prompt").text

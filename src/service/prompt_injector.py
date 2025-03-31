@@ -1,5 +1,5 @@
 from src.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX
-from src.model import Prompt
+from src.model import Prompt, Resource
 from .civitai_page_preparator import CivitaiPagePreparator
 from .browser_manager import BrowserManager
 import logging
@@ -18,6 +18,21 @@ class PromptInjector:
                  page_preparator: CivitaiPagePreparator):
         self.browser_manager = browser_manager
         self.page_preparator = page_preparator
+
+    async def add_resource(self, resource: Resource):
+        if resource.page_url is None:
+            await self.add_resource_by_hash(resource_hash=resource.hash)
+        else:
+            await self.add_resource_by_page_url(page_url=resource.page_url)
+
+    async def add_resource_by_page_url(self, page_url: str):
+        logger.info(WAIT_PREFIX + "add_resource_by_page_url: " + page_url)
+        await self.browser_manager.init_page(page_url)
+        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
+        await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
+        await self.page_preparator.enter_generation_perspective()
+        logger.info(DONE_PREFIX + "add_resource_by_page_url: " + page_url)
+
 
     async def add_resource_by_hash(self, resource_hash: str):
         logger.info(WAIT_PREFIX + "add_resource_by_hash: " + resource_hash)
@@ -88,16 +103,16 @@ class PromptInjector:
         logger.info(DONE_PREFIX + "set_seed: " + seed)
 
     async def inject(self, prompt: Prompt, inject_seed: bool):
-        await self.add_resource_by_hash(prompt.base_model.hash)
+        await self.add_resource(prompt.base_model)
         await self.open_additional_resources_accordion()
         await asyncio.sleep(2)
         for lora_weight in prompt.lora_weights:
-            await self.add_resource_by_hash(lora_weight.lora.hash)
+            await self.add_resource(lora_weight.lora)
             await self.set_lora_weight(lora_weight.weight)
         for embedding in prompt.embeddings:
-            await self.add_resource_by_hash(embedding.hash)
+            await self.add_resource(embedding)
         if prompt.vae is not None:
-            await self.add_resource_by_hash(prompt.vae.hash)
+            await self.add_resource(prompt.vae)
         await self.write_positive_prompt(prompt.positive_prompt_text)
         if prompt.negative_prompt_text is not None:
             await self.write_negative_prompt(prompt.negative_prompt_text)
