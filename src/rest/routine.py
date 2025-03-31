@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Form, File, UploadFile
 
+from src.constant import main
 from src.config import GENERATION_DEFAULT_DIR
 from src.provider import get_image_generator, get_browser_manager, get_civitai_page_preparator, get_prompt_injector, \
     get_prompt_builder, get_xml_parser, get_image_extractor
@@ -8,7 +9,7 @@ from src.service import ImageGenerator, BrowserManager, CivitaiPagePreparator, P
 
 routine_router = APIRouter()
 
-@routine_router.post("/inject_generate_extract")
+@routine_router.post("/inject_generate_extract", tags=[main])
 async def inject_generate_extract(
         session_url: str = Form(...),
         file: UploadFile = File(...),

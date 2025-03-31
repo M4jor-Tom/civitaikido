@@ -32,3 +32,6 @@ app.include_router(image_generation_router)
 app.include_router(prompt_injection_router)
 app.include_router(image_extraction_router)
 app.include_router(routine_router)
+if PROFILE == "DEV":
+    from src.rest import test_router
+    app.include_router(test_router)

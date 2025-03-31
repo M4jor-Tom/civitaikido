@@ -1,12 +1,13 @@
 import lxml.etree as et
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 
+from src.constant import low_layer
 from src.provider import get_xml_parser, get_prompt_builder, get_prompt_injector
 from src.service import XmlParser, PromptBuilder, PromptInjector
 
 prompt_injection_router = APIRouter()
 
-@prompt_injection_router.post("/inject_prompt")
+@prompt_injection_router.post("/inject_prompt", tags=[low_layer])
 async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False,
                         xml_parser: XmlParser = Depends(get_xml_parser),
                         prompt_builder: PromptBuilder = Depends(get_prompt_builder),
