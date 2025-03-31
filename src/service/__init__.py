@@ -5,3 +5,4 @@ from .images_generator import ImageGenerator
 from .prompt_injector import PromptInjector
 from .xml_parser import XmlParser
 from .browser_manager import BrowserManager
+from .buzz_runner import BuzzRunner

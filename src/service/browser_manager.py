@@ -4,7 +4,7 @@ from playwright_stealth.stealth import stealth_async
 import asyncio
 import logging
 
-from src.config import GLOBAL_TIMEOUT
+from src.config import GLOBAL_TIMEOUT, HEADLESS
 from src.constant import *
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class BrowserManager:
 
         # Start Playwright
         playwright = await async_playwright().start()
-        self.browser = await playwright.chromium.launch(headless=False)
+        self.browser = await playwright.chromium.launch(headless=HEADLESS)
 
         self.context = await self.browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

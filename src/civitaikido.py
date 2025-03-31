@@ -6,13 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.config import PROFILE
-from src.rest import (
-    browser_management_router,
-    image_generation_router,
-    prompt_injection_router,
-    image_extraction_router,
-    routine_router
-)
+from src.rest import routine_router, buzz_picking_router
 from src.provider import get_browser_manager
 
 logger = logging.getLogger(__name__)
@@ -27,11 +21,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(browser_management_router)
-app.include_router(image_generation_router)
-app.include_router(prompt_injection_router)
-app.include_router(image_extraction_router)
-app.include_router(routine_router)
-if PROFILE == "DEV":
-    from src.rest import test_router
-    app.include_router(test_router)
+if PROFILE == "BUZZ_RUNNER":
+    app.include_router(buzz_picking_router)
+else:
+    app.include_router(routine_router)
+    if PROFILE == "DEV":
+        from src.rest import (
+            browser_management_router,
+            image_generation_router,
+            prompt_injection_router,
+            image_extraction_router,
+            test_router
+        )
+        app.include_router(browser_management_router)
+        app.include_router(image_generation_router)
+        app.include_router(prompt_injection_router)
+        app.include_router(image_extraction_router)
+        app.include_router(test_router)

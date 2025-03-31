@@ -8,7 +8,7 @@ test_router = APIRouter()
 
 @test_router.get("/test", tags=[dev])
 async def test(
-        url: str = Form(...),
+        url: str,
         browser_manager: BrowserManager = Depends(get_browser_manager)
     ):
     await browser_manager.open_browser(url)
