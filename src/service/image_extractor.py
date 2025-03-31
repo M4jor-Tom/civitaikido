@@ -1,4 +1,3 @@
-from playwright.async_api import async_playwright
 import requests
 import os
 from urllib.parse import urlparse

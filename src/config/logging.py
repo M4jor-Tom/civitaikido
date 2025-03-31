@@ -1,7 +1,7 @@
 from logging.config import dictConfig
 
 
-def setup_logging() -> None:
+def setup_logging(log_level: str) -> None:
     """Set up logging configuration for the entire application."""
     dictConfig({
         "version": 1,
@@ -15,16 +15,16 @@ def setup_logging() -> None:
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "default",
-                "level": "DEBUG",
+                "level": log_level,
             },
         },
         "root": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": log_level,
         },
         "loggers": {
             "src": {
-                "level": "DEBUG",
+                "level": log_level,
                 "handlers": ["console"],
                 "propagate": False,
             },

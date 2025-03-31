@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Form, File, UploadFile
 
+from src.config import GENERATION_DEFAULT_DIR
 from src.provider import get_image_generator, get_browser_manager, get_civitai_page_preparator, get_prompt_injector, \
     get_prompt_builder, get_xml_parser, get_image_extractor
-from src.constant import generation_default_dir
 from src.service import ImageGenerator, BrowserManager, CivitaiPagePreparator, PromptInjector, PromptBuilder, XmlParser, \
     ImageExtractor
 
@@ -25,4 +25,4 @@ async def inject_generate_extract(
     await civitai_page_preparator.prepare_civitai_page(True)
     await prompt_injector.inject(prompt_builder.build_from_xml(await xml_parser.parse_xml(file)), inject_seed)
     await image_generator.generate_till_no_buzz()
-    await image_extractor.save_images_from_page(generation_default_dir + "/" + str(file.filename).split('.xml')[0])
+    await image_extractor.save_images_from_page(GENERATION_DEFAULT_DIR + "/" + str(file.filename).split('.xml')[0])

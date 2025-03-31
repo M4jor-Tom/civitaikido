@@ -1,10 +1,11 @@
 import logging
-from src.constant import global_timeout, profile_icon_selector, profile_settings_button_selector, \
+from src.constant import profile_icon_selector, profile_settings_button_selector, \
     show_mature_content_selector, blur_mature_content_selector, pg_13_content_selector, r_content_selector, \
     x_content_selector, xxx_content_selector, create_prompt_header_button_selector, generate_dropdown_option_selector, \
     claim_buzz_button_selector, generation_quantity_input_selector, WAIT_PREFIX, DONE_PREFIX
 from .browser_manager import BrowserManager
 from src.util import try_action, click_if_visible
+from ..config import GLOBAL_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class CivitaiPagePreparator:
 
     async def remove_cookies(self):
         async def interact():
-            await self.browser_manager.page.get_by_text("Customise choices").wait_for(state="visible", timeout=global_timeout)
+            await self.browser_manager.page.get_by_text("Customise choices").wait_for(state="visible", timeout=GLOBAL_TIMEOUT)
             await self.browser_manager.page.get_by_text("Customise choices").click()
             await self.browser_manager.page.get_by_text("Save preferences").click()
 
@@ -48,7 +49,7 @@ class CivitaiPagePreparator:
 
     async def skip_getting_started(self):
         async def interact():
-            await self.browser_manager.page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=global_timeout)
+            await self.browser_manager.page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=GLOBAL_TIMEOUT)
             await self.browser_manager.page.get_by_role("button", name="Skip").click()
 
         await try_action("skip_getting_started", interact)

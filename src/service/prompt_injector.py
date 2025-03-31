@@ -1,4 +1,4 @@
-from src.constant import global_timeout, model_search_input_selector, WAIT_PREFIX, DONE_PREFIX
+from src.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX
 from src.model import Prompt
 from .civitai_page_preparator import CivitaiPagePreparator
 from .browser_manager import BrowserManager
@@ -6,6 +6,7 @@ import logging
 import asyncio
 
 from src.util import try_action
+from ..config import GLOBAL_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class PromptInjector:
         await self.browser_manager.page.locator(model_search_input_selector).fill(resource_hash)
         await asyncio.sleep(5)
         await self.browser_manager.page.locator("img[src][class][style][alt][loading]").last.click(force=True)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=global_timeout)
+        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
         await self.page_preparator.enter_generation_perspective()
         logger.info(DONE_PREFIX + "add_resource_by_hash: " + resource_hash)
@@ -64,7 +65,7 @@ class PromptInjector:
     async def set_cfg_scale(self, cfg_scale: float):
         async def interact():
             await self.browser_manager.page.locator("#input_cfgScale-label + div > :nth-child(2) input").wait_for(
-                timeout=global_timeout)
+                timeout=GLOBAL_TIMEOUT)
             await self.browser_manager.page.locator("#input_cfgScale-label + div > :nth-child(2) input").fill(str(cfg_scale))
 
         await try_action('set_cfg_scale: ' + str(cfg_scale), interact)

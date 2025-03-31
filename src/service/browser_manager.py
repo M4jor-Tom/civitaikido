@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import HTTPException
 from playwright.async_api import async_playwright
 from playwright_stealth.stealth import stealth_async
 import asyncio
 import logging
+
+from src.config import GLOBAL_TIMEOUT
 from src.constant import *
 
 logger = logging.getLogger(__name__)
@@ -48,7 +50,7 @@ class BrowserManager:
             # geolocation={"latitude": 43.1242, "longitude": 5.9280},
             permissions=["geolocation"]
         )
-        context.set_default_timeout(global_timeout)
+        context.set_default_timeout(GLOBAL_TIMEOUT)
 
         self.page = await context.new_page()
         # await self.page.add_init_script(path="stealth.m#in.js")
@@ -56,10 +58,10 @@ class BrowserManager:
         # Load the provided URL
         await self.page.goto(self.signed_in_civitai_generation_url)
 
-        await self.page.wait_for_selector("#__next", timeout=global_timeout)
+        await self.page.wait_for_selector("#__next", timeout=GLOBAL_TIMEOUT)
 
         try:
-            await self.page.wait_for_load_state("domcontentloaded", timeout=global_timeout)
+            await self.page.wait_for_load_state("domcontentloaded", timeout=GLOBAL_TIMEOUT)
         except Exception:
             logger.warn(SKIP_PREFIX + "Page load state took too long, continuing anyway.")
 

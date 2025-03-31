@@ -10,6 +10,7 @@ charset-normalizer
 click
 contourpy
 cycler
+dotenv
 elementpath
 fastapi==0.115.11
 Flask
