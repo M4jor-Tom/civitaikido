@@ -8,7 +8,7 @@ from .browser_manager import BrowserManager
 
 logger = logging.getLogger(__name__)
 
-class ImagesGenerator:
+class ImageGenerator:
     browser_manager: BrowserManager
 
     def __init__(self, browser_manager: BrowserManager):

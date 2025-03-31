@@ -16,7 +16,7 @@ browser_manager: BrowserManager = BrowserManager()
 prompt_builder: PromptBuilder = PromptBuilder()
 xml_parser: XmlParser = XmlParser()
 civitai_page_preparator = CivitaiPagePreparator(browser_manager)
-images_generator = ImagesGenerator(browser_manager)
+image_generator = ImageGenerator(browser_manager)
 image_extractor = ImageExtractor(browser_manager)
 prompt_injector = PromptInjector(browser_manager, civitai_page_preparator)
 
@@ -41,7 +41,7 @@ async def open_browser(civitai_connection_url: str, ask_first_session_preparatio
 
 @app.post("/generate_till_no_buzz")
 async def generate_till_no_buzz():
-    await images_generator.generate_till_no_buzz()
+    await image_generator.generate_till_no_buzz()
 
 @app.post("/inject_prompt")
 async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False):
@@ -73,5 +73,5 @@ async def inject_generate_extract(
     await browser_manager.open_browser(session_url)
     await civitai_page_preparator.prepare_civitai_page(True)
     await prompt_injector.inject(prompt_builder.build_from_xml(await xml_parser.parse_xml(file)), inject_seed)
-    await images_generator.generate_till_no_buzz()
+    await image_generator.generate_till_no_buzz()
     await image_extractor.save_images_from_page(generation_default_dir + "/" + str(file.filename).split('.xml')[0])
