@@ -11,23 +11,23 @@ logger = logging.getLogger(__name__)
 
 class BrowserManager:
     browser: any
+    context: any
     page: any
     signed_in_civitai_generation_url: str | None
-    browser_ready_event: any
     browser_initialized: bool
 
     def __init__(self):
         self.browser = None
+        self.context = None
         self.page = None
         self.signed_in_civitai_generation_url = None
-        self.browser_ready_event = asyncio.Event()
         self.browser_initialized = False
 
     async def init_browser(self):
         """Initializes the browser when the URL is set."""
         logger.info(WAIT_PREFIX + "Browser to initialise...")
 
-        # Wait until an URL is set
+        # Wait until a URL is set
         while self.signed_in_civitai_generation_url is None:
             await asyncio.sleep(1)
 
@@ -37,7 +37,7 @@ class BrowserManager:
         playwright = await async_playwright().start()
         self.browser = await playwright.chromium.launch(headless=False)
 
-        context = await self.browser.new_context(
+        self.context = await self.browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                        "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
             locale="en-US",
@@ -50,20 +50,21 @@ class BrowserManager:
             # geolocation={"latitude": 43.1242, "longitude": 5.9280},
             permissions=["geolocation"]
         )
-        context.set_default_timeout(GLOBAL_TIMEOUT)
+        self.context.set_default_timeout(GLOBAL_TIMEOUT)
+        await self.init_page(str(self.signed_in_civitai_generation_url))
 
-        self.page = await context.new_page()
-        # await self.page.add_init_script(path="stealth.m#in.js")
+    async def init_page(self, url: str) -> None:
+        self.page = await self.context.new_page()
 
         # Load the provided URL
-        await self.page.goto(self.signed_in_civitai_generation_url)
+        await self.page.goto(url)
 
         await self.page.wait_for_selector("#__next", timeout=GLOBAL_TIMEOUT)
 
         try:
             await self.page.wait_for_load_state("domcontentloaded", timeout=GLOBAL_TIMEOUT)
         except Exception:
-            logger.warn(SKIP_PREFIX + "Page load state took too long, continuing anyway.")
+            logger.warning(SKIP_PREFIX + "Page load state took too long, continuing anyway.")
 
         await asyncio.sleep(5)
 
@@ -71,7 +72,6 @@ class BrowserManager:
         await stealth_async(self.page)
 
         logger.info(DONE_PREFIX + "Browser initialized with anti-bot protections")
-        self.browser_ready_event.set()  # Notify that the browser is ready
         self.browser_initialized = True
 
     async def shutdown_if_possible(self) -> None:
