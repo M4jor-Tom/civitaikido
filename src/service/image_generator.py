@@ -4,6 +4,7 @@ from src.constant import generation_info_button_selector, creator_tip_selector, 
 import logging
 import asyncio
 
+from . import BuzzCollector
 from .browser_manager import BrowserManager
 from ..config import GLOBAL_TIMEOUT
 
@@ -11,9 +12,11 @@ logger = logging.getLogger(__name__)
 
 class ImageGenerator:
     browser_manager: BrowserManager
+    buzz_collector: BuzzCollector
 
-    def __init__(self, browser_manager: BrowserManager):
+    def __init__(self, browser_manager: BrowserManager, buzz_collector: BuzzCollector):
         self.browser_manager = browser_manager
+        self.buzz_collector = buzz_collector
 
     async def give_no_tips(self):
         logger.info(WAIT_PREFIX + "give_no_tips")
@@ -21,6 +24,13 @@ class ImageGenerator:
         await self.browser_manager.page.locator(creator_tip_selector).fill("0%")
         await self.browser_manager.page.locator(civitai_tip_selector).fill("0%")
         logger.info(DONE_PREFIX + "give_no_tips")
+
+    async def generate_all_possible(self) -> None:
+        logger.info(WAIT_PREFIX + "generate_all_possible")
+        await self.generate_till_no_buzz()
+        await self.buzz_collector.like_all_pictures()
+        await self.generate_till_no_buzz()
+        logger.info(DONE_PREFIX + "generate_all_possible")
 
     async def generate_till_no_buzz(self):
         logger.info(WAIT_PREFIX + "generate_till_no_buzz")

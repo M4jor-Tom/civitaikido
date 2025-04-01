@@ -25,4 +25,5 @@ create_prompt_header_button_selector: str = "//button[div/span/div/div/text()='C
 generate_dropdown_option_selector: str = 'a[href="/generate"]'
 
 claim_buzz_button_selector: str = 'button:has-text("Claim 25 Buzz")'
+like_image_button_selector: str = ".tabler-icon-thumb-up"
 generation_quantity_input_selector: str = "input#input_quantity"

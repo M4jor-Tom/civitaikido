@@ -1,17 +1,17 @@
 from functools import lru_cache
 
 from src.service import BrowserManager, PromptBuilder, XmlParser, CivitaiPagePreparator, ImageGenerator, ImageExtractor, \
-    PromptInjector, BuzzRunner
+    PromptInjector, BuzzCollector
 
 # Services
 browser_manager: BrowserManager = BrowserManager()
 prompt_builder: PromptBuilder = PromptBuilder()
 xml_parser: XmlParser = XmlParser()
 civitai_page_preparator = CivitaiPagePreparator(browser_manager)
-image_generator = ImageGenerator(browser_manager)
-image_extractor = ImageExtractor(browser_manager)
 prompt_injector = PromptInjector(browser_manager, civitai_page_preparator)
-buzz_runner = BuzzRunner(browser_manager, civitai_page_preparator)
+buzz_collector = BuzzCollector(browser_manager, civitai_page_preparator)
+image_generator = ImageGenerator(browser_manager, buzz_collector)
+image_extractor = ImageExtractor(browser_manager, buzz_collector)
 
 @lru_cache
 def get_browser_manager() -> BrowserManager:
@@ -35,5 +35,5 @@ def get_image_extractor() -> ImageExtractor:
 def get_prompt_injector() -> PromptInjector:
     return prompt_injector
 @lru_cache
-def get_buzz_runner() -> BuzzRunner:
-    return buzz_runner
+def get_buzz_collector() -> BuzzCollector:
+    return buzz_collector
