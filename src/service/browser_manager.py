@@ -52,6 +52,7 @@ class BrowserManager:
         )
         self.context.set_default_timeout(GLOBAL_TIMEOUT)
         await self.init_page(str(self.signed_in_civitai_generation_url))
+        self.browser_initialized = True
 
     async def init_page(self, url: str) -> None:
         self.page = await self.context.new_page()
@@ -70,9 +71,6 @@ class BrowserManager:
 
         # Apply stealth mode
         await stealth_async(self.page)
-
-        logger.info(DONE_PREFIX + "Browser initialized with anti-bot protections")
-        self.browser_initialized = True
 
     async def shutdown_if_possible(self) -> None:
         # Shutdown sequence

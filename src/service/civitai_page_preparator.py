@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from src.constant import profile_icon_selector, profile_settings_button_selector, \
     show_mature_content_selector, blur_mature_content_selector, pg_13_content_selector, r_content_selector, \
@@ -67,14 +68,24 @@ class CivitaiPagePreparator:
         logger.info(DONE_PREFIX + "set_input_quantity")
 
     async def prepare_civitai_page(self, ask_first_session_preparation: bool):
-        await self.remove_cookies()
-        if ask_first_session_preparation:
-            await self.skip_getting_started()
-        await self.enter_generation_perspective()
-        await self.confirm_start_generating_yellow_button()
-        await self.claim_buzz()
-        if ask_first_session_preparation:
-            await self.enter_parameters_perspective()
-            await self.enable_mature_content()
-        await self.enter_generation_perspective()
-        await self.set_input_quantity()
+        async def skip_getting_started_if_first_session_preparation():
+            if ask_first_session_preparation:
+                await self.skip_getting_started()
+        async def remove_popups():
+            await asyncio.gather(
+                skip_getting_started_if_first_session_preparation(),
+                self.remove_cookies()
+            )
+        async def prepare_without_removing_popups():
+            if ask_first_session_preparation:
+                await self.enter_parameters_perspective()
+                await self.enable_mature_content()
+            await self.enter_generation_perspective()
+            await asyncio.sleep(3)
+            await self.confirm_start_generating_yellow_button(),
+            await self.claim_buzz()
+            await self.set_input_quantity()
+        await asyncio.gather(
+            remove_popups(),
+            prepare_without_removing_popups()
+        )
