@@ -1,5 +1,5 @@
 #!./python
-from src.config import setup_logging, LOGGING_LEVEL, APP_PORT, PROFILE
+from src.config import setup_logging, LOGGING_LEVEL, APP_PORT
 
 if __name__ == "__main__":
     import uvicorn
