@@ -28,14 +28,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ───────────── App Setup ─────────────
 WORKDIR /app
 
-COPY requirements.txt /app/
+COPY ../requirements.txt /app/
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt \
     && playwright install --with-deps
 
 # ───────────── App Code ─────────────
-COPY . /app
+COPY .. /app
 
 # ───────────── Entrypoint ─────────────
 CMD ["python", "main.py"]

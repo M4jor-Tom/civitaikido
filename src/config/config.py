@@ -1,9 +1,10 @@
 from src.config import Env
+from src.model import Role, Profile
 
-PROFILE="DEV"
-ROLE="INJECTOR_EXTRACTOR"
-# ROLE="BUZZ_RUNNER"
-env = Env(env_file=".env.d/" + PROFILE.lower() + "/" + ROLE.lower() + ".env")
+env = Env()
+
+ROLE = env.get_role(Role.injector_extractor)
+PROFILE = env.get_profile(Profile.PROD)
 APP_PORT = env.get_int("APP_PORT", 8000)
 LOGGING_LEVEL = env.get("LOGGING_LEVEL", "DEBUG")
 HEADLESS = env.get_bool("HEADLESS", True)
