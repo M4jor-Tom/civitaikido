@@ -16,14 +16,6 @@ class CivitaiPagePreparator:
     def __init__(self, browser_manager: BrowserManager):
         self.browser_manager = browser_manager
 
-    async def remove_cookies(self):
-        async def interact():
-            await self.browser_manager.page.get_by_text("Customise choices").wait_for(state="visible", timeout=GLOBAL_TIMEOUT)
-            await self.browser_manager.page.get_by_text("Customise choices").click()
-            await self.browser_manager.page.get_by_text("Save preferences").click()
-
-        await try_action("remove_cookies", interact)
-
     async def enter_parameters_perspective(self):
         async def interact():
             await self.browser_manager.page.locator(profile_icon_selector).first.click()
@@ -48,13 +40,6 @@ class CivitaiPagePreparator:
             await self.browser_manager.page.locator(generate_dropdown_option_selector).first.click()
         await try_action("enter_generation_perspective", interact)
 
-    async def skip_getting_started(self):
-        async def interact():
-            await self.browser_manager.page.get_by_role("button", name="Skip").wait_for(state="visible", timeout=GLOBAL_TIMEOUT)
-            await self.browser_manager.page.get_by_role("button", name="Skip").click()
-
-        await try_action("skip_getting_started", interact)
-
     async def confirm_start_generating_yellow_button(self):
         await click_if_visible("confirm_start_generating_yellow_button",
                                self.browser_manager.page.get_by_role("button", name="I Confirm, Start Generating"))
@@ -68,14 +53,6 @@ class CivitaiPagePreparator:
         logger.info(DONE_PREFIX + "set_input_quantity")
 
     async def prepare_civitai_page(self, ask_first_session_preparation: bool):
-        async def skip_getting_started_if_first_session_preparation():
-            if ask_first_session_preparation:
-                await self.skip_getting_started()
-        async def remove_popups():
-            await asyncio.gather(
-                skip_getting_started_if_first_session_preparation(),
-                self.remove_cookies()
-            )
         async def prepare_without_removing_popups():
             if ask_first_session_preparation:
                 await self.enter_parameters_perspective()
@@ -85,7 +62,4 @@ class CivitaiPagePreparator:
             await self.confirm_start_generating_yellow_button(),
             await self.claim_buzz()
             await self.set_input_quantity()
-        await asyncio.gather(
-            remove_popups(),
-            prepare_without_removing_popups()
-        )
+        await prepare_without_removing_popups()

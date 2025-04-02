@@ -4,18 +4,16 @@ from urllib.parse import urlparse
 import logging
 
 from src.constant import images_selector
-from . import BrowserManager, BuzzCollector
-from src.util import DONE_PREFIX
+from . import BrowserManager
+from src.util import DONE_PREFIX, enter_feed_view
 
 logger = logging.getLogger(__name__)
 
 class ImageExtractor:
     browser_manager: BrowserManager
-    buzz_collector: BuzzCollector
 
-    def __init__(self, browser_manager: BrowserManager, buzz_collector: BuzzCollector):
+    def __init__(self, browser_manager: BrowserManager):
         self.browser_manager = browser_manager
-        self.buzz_collector = buzz_collector
 
     async def save_images_from_page(self, output_dir_in_home: str) -> None:
         """Save all image files from a web page using Playwright.
@@ -24,7 +22,7 @@ class ImageExtractor:
             output_dir_in_home: Directory where images will be saved.
         """
         output_dir: str = os.environ['HOME'] + '/' + output_dir_in_home
-        await self.buzz_collector.enter_feed_view()
+        await enter_feed_view(self.browser_manager.page)
         os.makedirs(output_dir, exist_ok=True)
         img_elements = await self.browser_manager.page.locator(images_selector).all()
         for i, img in enumerate(img_elements):

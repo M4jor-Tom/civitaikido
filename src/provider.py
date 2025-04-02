@@ -1,17 +1,18 @@
 from functools import lru_cache
 
 from src.service import BrowserManager, PromptBuilder, XmlParser, CivitaiPagePreparator, ImageGenerator, ImageExtractor, \
-    PromptInjector, BuzzCollector
+    PromptInjector, BuzzCollector, PopupRemover
 
 # Services
 browser_manager: BrowserManager = BrowserManager()
 prompt_builder: PromptBuilder = PromptBuilder()
 xml_parser: XmlParser = XmlParser()
-civitai_page_preparator = CivitaiPagePreparator(browser_manager)
+civitai_page_preparator: CivitaiPagePreparator = CivitaiPagePreparator(browser_manager)
+popup_remover: PopupRemover = PopupRemover(browser_manager)
 prompt_injector = PromptInjector(browser_manager, civitai_page_preparator)
 buzz_collector = BuzzCollector(browser_manager, civitai_page_preparator)
-image_generator = ImageGenerator(browser_manager, buzz_collector)
-image_extractor = ImageExtractor(browser_manager, buzz_collector)
+image_generator = ImageGenerator(browser_manager)
+image_extractor = ImageExtractor(browser_manager)
 
 @lru_cache
 def get_browser_manager() -> BrowserManager:
@@ -25,6 +26,9 @@ def get_xml_parser() -> XmlParser:
 @lru_cache
 def get_civitai_page_preparator() -> CivitaiPagePreparator:
     return civitai_page_preparator
+@lru_cache
+def get_popup_remover() -> PopupRemover:
+    return popup_remover
 @lru_cache
 def get_image_generator() -> ImageGenerator:
     return image_generator

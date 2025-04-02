@@ -56,7 +56,9 @@ class BrowserManager:
 
     async def init_page(self, url: str) -> None:
         self.page = await self.context.new_page()
-
+        # await self.page.add_init_script(
+        #    """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""
+        #)
         # Load the provided URL
         await self.page.goto(url)
 
