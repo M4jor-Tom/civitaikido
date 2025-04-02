@@ -12,7 +12,7 @@ xml_parser: XmlParser = XmlParser()
 civitai_page_preparator: CivitaiPagePreparator = CivitaiPagePreparator(browser_manager)
 popup_remover: PopupRemover = PopupRemover(browser_manager)
 prompt_injector = PromptInjector(browser_manager, civitai_page_preparator)
-buzz_collector = BuzzCollector(browser_manager, civitai_page_preparator)
+buzz_collector = BuzzCollector(browser_manager, civitai_page_preparator, popup_remover)
 image_generator = ImageGenerator(browser_manager)
 image_extractor = ImageExtractor(browser_manager)
 
