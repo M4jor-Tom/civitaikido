@@ -1,3 +1,4 @@
+from .state_manager import StateManager
 from .browser_manager import BrowserManager
 from .civitai_page_preparator import CivitaiPagePreparator
 from .buzz_collector import BuzzCollector

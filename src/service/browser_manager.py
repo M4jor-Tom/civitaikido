@@ -6,22 +6,24 @@ import logging
 
 from src.config import GLOBAL_TIMEOUT, HEADLESS
 from src.constant import *
+from src.model.injection_extraction_state import InjectionExtractionState
+from src.service import StateManager
 
 logger = logging.getLogger(__name__)
 
 class BrowserManager:
+    state_manager: StateManager
     browser: any
     context: any
     page: any
     signed_in_civitai_generation_url: str | None
-    browser_initialized: bool
 
-    def __init__(self):
+    def __init__(self, state_manager: StateManager):
         self.browser = None
         self.context = None
         self.page = None
         self.signed_in_civitai_generation_url = None
-        self.browser_initialized = False
+        self.state_manager = state_manager
 
     async def init_browser(self):
         """Initializes the browser when the URL is set."""
@@ -52,7 +54,7 @@ class BrowserManager:
         )
         self.context.set_default_timeout(GLOBAL_TIMEOUT)
         await self.init_page(str(self.signed_in_civitai_generation_url))
-        self.browser_initialized = True
+        self.state_manager.injection_extraction_state = InjectionExtractionState.BROWSER_OPEN
 
     async def init_page(self, url: str) -> None:
         self.page = await self.context.new_page()
@@ -88,5 +90,5 @@ class BrowserManager:
 
         self.signed_in_civitai_generation_url = civitai_connection_url
         logger.info(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
-        while not self.browser_initialized:
+        while self.state_manager.injection_extraction_state != InjectionExtractionState.BROWSER_OPEN:
             await asyncio.sleep(1)

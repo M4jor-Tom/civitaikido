@@ -1,7 +1,7 @@
 import asyncio
 
 from src.config import GLOBAL_TIMEOUT
-from src.service import BrowserManager
+from src.service import BrowserManager, StateManager
 from src.util import try_action
 
 

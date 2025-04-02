@@ -1,10 +1,12 @@
 from functools import lru_cache
 
+from src.model.injection_extraction_state import InjectionExtractionState
 from src.service import BrowserManager, PromptBuilder, XmlParser, CivitaiPagePreparator, ImageGenerator, ImageExtractor, \
-    PromptInjector, BuzzCollector, PopupRemover
+    PromptInjector, BuzzCollector, PopupRemover, StateManager
 
 # Services
-browser_manager: BrowserManager = BrowserManager()
+state_manager: StateManager = StateManager(InjectionExtractionState.IDLE)
+browser_manager: BrowserManager = BrowserManager(state_manager)
 prompt_builder: PromptBuilder = PromptBuilder()
 xml_parser: XmlParser = XmlParser()
 civitai_page_preparator: CivitaiPagePreparator = CivitaiPagePreparator(browser_manager)
@@ -14,6 +16,9 @@ buzz_collector = BuzzCollector(browser_manager, civitai_page_preparator)
 image_generator = ImageGenerator(browser_manager)
 image_extractor = ImageExtractor(browser_manager)
 
+@lru_cache
+def get_state_manager() -> StateManager:
+    return state_manager
 @lru_cache
 def get_browser_manager() -> BrowserManager:
     return browser_manager

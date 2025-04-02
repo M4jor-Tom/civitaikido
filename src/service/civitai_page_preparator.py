@@ -6,7 +6,6 @@ from src.constant import profile_icon_selector, profile_settings_button_selector
     claim_buzz_button_selector, generation_quantity_input_selector, WAIT_PREFIX, DONE_PREFIX
 from .browser_manager import BrowserManager
 from src.util import try_action, click_if_visible
-from ..config import GLOBAL_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
