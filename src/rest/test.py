@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends
 
 from src.provider import get_browser_manager
 from src.service import BrowserManager

@@ -1,21 +1,18 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.config import PROFILE, ROLE
 from src.model import Profile, Role
-from src.provider import get_browser_manager
+from src.provider.factory import get_session_service_registry
 
 logger = logging.getLogger(__name__)
-browser_manager = get_browser_manager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"🚀 Civitaikido is starting with profile [{PROFILE.value}] and role [{ROLE.value}]...")
-    asyncio.create_task(browser_manager.init_browser())
     yield
-    await browser_manager.shutdown_if_possible()
+    await get_session_service_registry().shutdown_all()
 
 app = FastAPI(lifespan=lifespan)
 

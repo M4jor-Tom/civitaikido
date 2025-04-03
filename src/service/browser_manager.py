@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from playwright_stealth.stealth import stealth_async
 import asyncio
 import logging
@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 class BrowserManager:
     state_manager: StateManager
-    browser: any
-    context: any
-    page: any
+    browser: Browser | None
+    context: BrowserContext | None
+    page: Page | None
     signed_in_civitai_generation_url: str | None
 
     def __init__(self, state_manager: StateManager):
@@ -31,6 +31,7 @@ class BrowserManager:
 
         # Wait until a URL is set
         while self.signed_in_civitai_generation_url is None:
+            logger.debug("Poll for signed_in_civitai_generation_url to have a value...")
             await asyncio.sleep(1)
 
         logger.info(DONE_PREFIX + "URL received: " + str(self.signed_in_civitai_generation_url))
@@ -57,7 +58,10 @@ class BrowserManager:
         self.state_manager.injection_extraction_state = InjectionExtractionState.BROWSER_OPEN
 
     async def init_page(self, url: str) -> None:
-        self.page = await self.context.new_page()
+        new_page: Page = await self.context.new_page()
+        if self.page is not None:
+            await self.page.close()
+        self.page = new_page
         # await self.page.add_init_script(
         #    """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""
         #)
@@ -77,11 +81,18 @@ class BrowserManager:
         await stealth_async(self.page)
 
     async def shutdown_if_possible(self) -> None:
-        # Shutdown sequence
-        if self.browser:
+        if self.page:
             await self.page.close()
+            logger.info("🛑 Page closed!")
+            self.page = None
+        if self.context:
+            await self.context.close()
+            logger.info("🛑 Context closed!")
+            self.context = None
+        if self.browser:
             await self.browser.close()
             logger.info("🛑 Browser closed!")
+            self.browser = None
 
     async def open_browser(self, civitai_connection_url: str):
         """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
