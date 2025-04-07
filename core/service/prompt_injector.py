@@ -1,23 +1,19 @@
 from core.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX
 from core.model import Prompt, Resource
-from .civitai_page_preparator import CivitaiPagePreparator
 from .browser_manager import BrowserManager
 import logging
 import asyncio
 
-from core.util import try_action
+from core.util import try_action, enter_generation_perspective
 from ..config import GLOBAL_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
 class PromptInjector:
     browser_manager: BrowserManager
-    page_preparator: CivitaiPagePreparator
 
-    def __init__(self, browser_manager: BrowserManager,
-                 page_preparator: CivitaiPagePreparator):
+    def __init__(self, browser_manager: BrowserManager):
         self.browser_manager = browser_manager
-        self.page_preparator = page_preparator
 
     async def add_resource(self, resource: Resource):
         if resource.page_url is None:
@@ -30,7 +26,7 @@ class PromptInjector:
         await self.browser_manager.init_page(page_url)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
-        await self.page_preparator.enter_generation_perspective()
+        await enter_generation_perspective(self.browser_manager.page)
         logger.info(DONE_PREFIX + "add_resource_by_page_url: " + page_url)
 
 
@@ -41,7 +37,7 @@ class PromptInjector:
         await self.browser_manager.page.locator("img[src][class][style][alt][loading]").last.click(force=True)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
-        await self.page_preparator.enter_generation_perspective()
+        await enter_generation_perspective(self.browser_manager.page)
         logger.info(DONE_PREFIX + "add_resource_by_hash: " + resource_hash)
 
     async def open_additional_resources_accordion(self, ):

@@ -13,7 +13,7 @@ class SessionServiceContainer:
         self.popup_remover: PopupRemover = PopupRemover(self.browser_manager)
         self.xml_parser: XmlParser = XmlParser()
         self.prompt_builder: PromptBuilder = PromptBuilder()
-        self.prompt_injector = PromptInjector(self.browser_manager, self.civitai_page_preparator)
+        self.prompt_injector = PromptInjector(self.browser_manager)
         self.buzz_collector = BuzzCollector(self.browser_manager, self.civitai_page_preparator, self.popup_remover)
         self.image_generator = ImageGenerator(self.browser_manager)
         self.image_extractor = ImageExtractor(self.browser_manager)
