@@ -17,7 +17,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 if PROFILE == Profile.DEV:
-    from core.rest import test_router
+    from core.rest import test_router, state_router
+
     app.include_router(test_router)
 if ROLE == Role.buzz_runner:
     from core.rest import buzz_picking_router
@@ -25,6 +26,7 @@ if ROLE == Role.buzz_runner:
 elif ROLE == Role.injector_extractor:
     from core.rest import routine_router
     app.include_router(routine_router)
+    app.include_router(state_router)
     from core.rest import (
         browser_management_router,
         image_generation_router,
