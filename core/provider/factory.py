@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from core.provider import SessionServiceRegistry, SessionServiceContainer
 from core.service import StateManager, BrowserManager, CivitaiPagePreparator, PopupRemover, XmlParser, PromptBuilder, \
-    PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor
+    PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor, RoutineExecutor
 
 service_registry = SessionServiceRegistry()
 
@@ -81,3 +81,10 @@ async def get_image_extractor(
 ) -> ImageExtractor:
     container: SessionServiceContainer = registry.get_or_create(session_id)
     return container.image_extractor
+
+async def get_routine_executor(
+    session_id: str,
+    registry: SessionServiceRegistry = Depends(get_session_service_registry)
+) -> RoutineExecutor:
+    container: SessionServiceContainer = registry.get_or_create(session_id)
+    return container.routine_executor

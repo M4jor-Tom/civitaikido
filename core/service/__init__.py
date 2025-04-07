@@ -8,3 +8,4 @@ from .image_extractor import ImageExtractor
 from .image_generator import ImageGenerator
 from .prompt_injector import PromptInjector
 from .xml_parser import XmlParser
+from .routine_executor import RoutineExecutor
