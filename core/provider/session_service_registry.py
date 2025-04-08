@@ -17,7 +17,7 @@ class SessionServiceRegistry:
     def get_or_create(self, session_id: str) -> SessionServiceContainer:
         if session_id not in self.sessions:
             self.sessions[session_id] = build_session(session_id)
-        elif self.sessions[session_id].state_manager.injection_extraction_state == InjectionExtractionState.IMAGES_EXTRACTED:
+        elif self.sessions[session_id].state_manager.injection_extraction_state == InjectionExtractionState.TERMINATED:
             self.sessions[session_id].shutdown()
             self.sessions[session_id] = build_session(session_id)
         else:

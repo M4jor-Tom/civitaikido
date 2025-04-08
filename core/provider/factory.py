@@ -3,7 +3,7 @@ from functools import lru_cache
 from fastapi import Depends
 
 from core.provider import SessionServiceRegistry, SessionServiceContainer
-from core.service import StateManager, BrowserManager, CivitaiPagePreparator, PopupRemover, XmlParser, PromptBuilder, \
+from core.service import StateManager, BrowserManager, ProfilePreparator, XmlParser, PromptBuilder, \
     PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor, RoutineExecutor
 from core.service.scene_manager import SceneManager
 
@@ -27,19 +27,12 @@ async def get_browser_manager(
     container: SessionServiceContainer = registry.get_or_create(session_id)
     return container.browser_manager
 
-async def get_civitai_page_preparator(
+async def get_profile_preparator(
     session_id: str,
     registry: SessionServiceRegistry = Depends(get_session_service_registry),
-) -> CivitaiPagePreparator:
+) -> ProfilePreparator:
     container: SessionServiceContainer = registry.get_or_create(session_id)
-    return container.civitai_page_preparator
-
-async def get_popup_remover(
-    session_id: str,
-    registry: SessionServiceRegistry = Depends(get_session_service_registry),
-) -> PopupRemover:
-    container: SessionServiceContainer = registry.get_or_create(session_id)
-    return container.popup_remover
+    return container.profile_preparator
 
 async def get_xml_parser(
     session_id: str,

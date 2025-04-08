@@ -4,8 +4,8 @@ from .browser_manager import BrowserManager
 import logging
 import asyncio
 
-from core.util import try_action, enter_generation_perspective
-from ..config import GLOBAL_TIMEOUT
+from core.util import try_action
+from ..config import INTERACTION_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -16,28 +16,26 @@ class PromptInjector:
         self.browser_manager = browser_manager
 
     async def add_resource(self, resource: Resource):
-        if resource.page_url is None:
-            await self.add_resource_by_hash(resource_hash=resource.hash)
-        else:
+        if resource.page_url:
             await self.add_resource_by_page_url(page_url=resource.page_url)
+        else:
+            await self.add_resource_by_hash(resource_hash=resource.hash)
 
     async def add_resource_by_page_url(self, page_url: str):
         logger.info(WAIT_PREFIX + "add_resource_by_page_url: " + page_url)
         await self.browser_manager.init_page(page_url)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
+        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=INTERACTION_TIMEOUT)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
-        await enter_generation_perspective(self.browser_manager.page)
+        await self.browser_manager.enter_generation_perspective()
         logger.info(DONE_PREFIX + "add_resource_by_page_url: " + page_url)
-
 
     async def add_resource_by_hash(self, resource_hash: str):
         logger.info(WAIT_PREFIX + "add_resource_by_hash: " + resource_hash)
         await self.browser_manager.page.locator(model_search_input_selector).fill(resource_hash)
-        await asyncio.sleep(5)
         await self.browser_manager.page.locator(resource_option_selector).first.click(force=True)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
+        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=INTERACTION_TIMEOUT)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
-        await enter_generation_perspective(self.browser_manager.page)
+        await self.browser_manager.enter_generation_perspective()
         logger.info(DONE_PREFIX + "add_resource_by_hash: " + resource_hash)
 
     async def open_additional_resources_accordion(self, ):
@@ -76,7 +74,7 @@ class PromptInjector:
     async def set_cfg_scale(self, cfg_scale: float):
         async def interact():
             await self.browser_manager.page.locator("#input_cfgScale-label + div > :nth-child(2) input").wait_for(
-                timeout=GLOBAL_TIMEOUT)
+                timeout=INTERACTION_TIMEOUT)
             await self.browser_manager.page.locator("#input_cfgScale-label + div > :nth-child(2) input").fill(str(cfg_scale))
 
         await try_action('set_cfg_scale: ' + str(cfg_scale), interact)

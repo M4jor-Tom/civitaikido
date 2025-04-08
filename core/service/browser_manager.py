@@ -1,13 +1,16 @@
+from asyncio import Task
+
 from fastapi import HTTPException
-from playwright.async_api import async_playwright, Browser, BrowserContext, Page
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page, TimeoutError
 from playwright_stealth.stealth import stealth_async
 import asyncio
 import logging
 
-from core.config import GLOBAL_TIMEOUT, HEADLESS
+from core.config import INTERACTION_TIMEOUT, HEADLESS
 from core.constant import *
 from core.model.injection_extraction_state import InjectionExtractionState
 from core.service import StateManager
+from core.util import try_action, remove_cookies, skip_getting_started
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,7 @@ class BrowserManager:
         self.page = None
         self.signed_in_civitai_generation_url = None
         self.state_manager = state_manager
+        self.page_tasks: list[Task] = []
 
     async def init_browser(self):
         """Initializes the browser when the URL is set."""
@@ -53,26 +57,36 @@ class BrowserManager:
             # geolocation={"latitude": 43.1242, "longitude": 5.9280},
             permissions=["geolocation"]
         )
-        self.context.set_default_timeout(GLOBAL_TIMEOUT)
+        self.context.set_default_timeout(INTERACTION_TIMEOUT)
         await self.init_page(str(self.signed_in_civitai_generation_url))
-        self.state_manager.injection_extraction_state = InjectionExtractionState.BROWSER_OPEN
+        self.state_manager.update_injection_extraction_state(InjectionExtractionState.BROWSER_OPEN)
 
-    async def init_page(self, url: str) -> None:
+    async def close_page(self) -> None:
+        canceled_count: int = 0
+        for task in self.page_tasks:
+            if task.cancel():
+                canceled_count += 1
+        self.page_tasks.clear()
+        logger.debug(f"close_page: killed {canceled_count} tasks")
+        await self.page.close()
+
+    async def init_page(self, new_page_url: str) -> None:
         new_page: Page = await self.context.new_page()
-        if self.page is not None:
-            await self.page.close()
+        self.page_tasks.append(asyncio.create_task(remove_cookies(new_page)))
+        self.page_tasks.append(asyncio.create_task(skip_getting_started(new_page)))
+        if self.page:
+            await self.close_page()
         self.page = new_page
         # await self.page.add_init_script(
         #    """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""
         #)
         # Load the provided URL
-        await self.page.goto(url)
-
-        await self.page.wait_for_selector("#__next", timeout=GLOBAL_TIMEOUT)
+        await self.page.goto(new_page_url)
+        await self.page.wait_for_selector("#__next", timeout=INTERACTION_TIMEOUT)
 
         try:
-            await self.page.wait_for_load_state("domcontentloaded", timeout=GLOBAL_TIMEOUT)
-        except Exception:
+            await self.page.wait_for_load_state("domcontentloaded", timeout=INTERACTION_TIMEOUT)
+        except TimeoutError:
             logger.warning(SKIP_PREFIX + "Page load state took too long, continuing anyway.")
 
         await asyncio.sleep(5)
@@ -82,7 +96,7 @@ class BrowserManager:
 
     async def shutdown_if_possible(self) -> None:
         if self.page:
-            await self.page.close()
+            await self.close_page()
             logger.info("🛑 Page closed!")
             self.page = None
         if self.context:
@@ -103,3 +117,15 @@ class BrowserManager:
         logger.info(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
         while self.state_manager.injection_extraction_state != InjectionExtractionState.BROWSER_OPEN:
             await asyncio.sleep(1)
+
+    async def enter_generation_perspective(self):
+        await self.enter_generation_perspective_by_buttons()
+
+    async def enter_generation_perspective_by_url(self):
+        await self.init_page(generation_perspective_url)
+
+    async def enter_generation_perspective_by_buttons(self):
+        async def interact():
+            await self.page.locator(create_prompt_header_button_selector).first.click()
+            await self.page.locator(generate_dropdown_option_selector).first.click()
+        await try_action("enter_generation_perspective", interact)
