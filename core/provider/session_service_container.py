@@ -2,13 +2,19 @@ import asyncio
 
 from core.model.injection_extraction_state import InjectionExtractionState
 from core.service import StateManager, BrowserManager, PromptBuilder, XmlParser, CivitaiPagePreparator, PopupRemover, \
-    PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor, RoutineExecutor
+    PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor, RoutineExecutor, SceneManager
+
 
 class SessionServiceContainer:
     def __init__(self, session_id: str):
         self.session_id = session_id
         self.state_manager: StateManager = StateManager(InjectionExtractionState.IDLE)
         self.browser_manager: BrowserManager = BrowserManager(self.state_manager)
+        self.scene_manager: SceneManager = SceneManager(
+            session_id=session_id,
+            state_manager=self.state_manager,
+            browser_manager=self.browser_manager
+        )
         self.civitai_page_preparator: CivitaiPagePreparator = CivitaiPagePreparator(self.browser_manager)
         self.popup_remover: PopupRemover = PopupRemover(self.browser_manager)
         self.xml_parser: XmlParser = XmlParser()
