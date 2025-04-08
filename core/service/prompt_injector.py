@@ -1,4 +1,4 @@
-from core.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX
+from core.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX, resource_option_selector
 from core.model import Prompt, Resource
 from .browser_manager import BrowserManager
 import logging
@@ -34,7 +34,7 @@ class PromptInjector:
         logger.info(WAIT_PREFIX + "add_resource_by_hash: " + resource_hash)
         await self.browser_manager.page.locator(model_search_input_selector).fill(resource_hash)
         await asyncio.sleep(5)
-        await self.browser_manager.page.locator("img[src][class][style][alt][loading]").last.click(force=True)
+        await self.browser_manager.page.locator(resource_option_selector).first.click(force=True)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=GLOBAL_TIMEOUT)
         await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
         await enter_generation_perspective(self.browser_manager.page)

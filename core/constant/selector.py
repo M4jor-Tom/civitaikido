@@ -20,6 +20,9 @@ r_content_selector: str = '//*[text()="Adult themes and situations, partial nudi
 x_content_selector: str = '//*[text()="Graphic nudity, adult objects, or settings"]'
 xxx_content_selector: str = '//*[text()="Overtly sexual or disturbing graphic content"]'
 
+# resource_option_selector: str = "img[src][class][style][alt][loading]"
+resource_option_selector: str = "*[role='option']"
+
 # create_prompt_header_button_selector: str = 'button[data-activity="create:navbar"]'
 create_prompt_header_button_selector: str = "//button[div/span/div/div/text()='Create']/following-sibling::button"
 generate_dropdown_option_selector: str = 'a[href="/generate"]'
