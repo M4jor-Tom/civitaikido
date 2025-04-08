@@ -24,7 +24,7 @@ if ROLE == Role.buzz_runner:
     from core.rest import buzz_picking_router
     app.include_router(buzz_picking_router)
 elif ROLE == Role.injector_extractor:
-    from core.rest import routine_router
+    from core.rest import routine_router, state_router
     app.include_router(routine_router)
     app.include_router(state_router)
     from core.rest import (
