@@ -8,7 +8,7 @@ from core.service import StateManager, BrowserManager, PromptBuilder, XmlParser,
 class SessionServiceContainer:
     def __init__(self, session_id: str):
         self.session_id = session_id
-        self.state_manager: StateManager = StateManager(InjectionExtractionState.IDLE)
+        self.state_manager: StateManager = StateManager(InjectionExtractionState.INIT)
         self.browser_manager: BrowserManager = BrowserManager(self.state_manager)
         self.scene_manager: SceneManager = SceneManager(
             session_id=session_id,
