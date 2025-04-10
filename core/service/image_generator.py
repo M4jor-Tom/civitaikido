@@ -27,10 +27,10 @@ class ImageGenerator:
 
     async def launch_all_possible_generations(self) -> None:
         logger.debug(WAIT_PREFIX + "generate_all_possible")
-        await self.launch_all_generations()
+        await self.launch_generations_batch()
         await self.browser_manager.page.locator(all_jobs_done_selector).wait_for(timeout=INTERACTION_TIMEOUT)
         await like_all_pictures(self.browser_manager.page)
-        await self.launch_all_generations()
+        await self.launch_generations_batch()
         logger.debug(DONE_PREFIX + "generate_all_possible")
 
     async def confirm_start_generating_yellow_button(self):
@@ -49,7 +49,7 @@ class ImageGenerator:
         await self.browser_manager.page.locator(generation_quantity_input_selector).fill("4")
         logger.debug(DONE_PREFIX + "set_input_quantity")
 
-    async def launch_all_generations(self):
+    async def launch_generations_batch(self):
         logger.debug(WAIT_PREFIX + "launch_all_generations")
         await self.confirm_start_generating_yellow_button()
         await self.claim_buzz()
@@ -63,4 +63,4 @@ class ImageGenerator:
                 await self.browser_manager.page.locator(generation_button_selector).wait_for(timeout=INTERACTION_TIMEOUT)
                 await self.browser_manager.page.locator(generation_button_selector).click()
                 await asyncio.sleep(3)
-        logger.debug(DONE_PREFIX + "launch_all_generations")
+        logger.debug(DONE_PREFIX + "launch_generations_batch")
