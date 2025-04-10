@@ -8,25 +8,22 @@ import logging
 
 from core.config import INTERACTION_TIMEOUT, HEADLESS
 from core.constant import *
-from core.model.injection_extraction_state import InjectionExtractionState
-from core.service import StateManager
 from core.util import try_action, remove_cookies, skip_getting_started
 
 logger = logging.getLogger(__name__)
 
 class BrowserManager:
-    state_manager: StateManager
     browser: Browser | None
     context: BrowserContext | None
     page: Page | None
     signed_in_civitai_generation_url: str | None
+    browser_started_event: bool = False
 
-    def __init__(self, state_manager: StateManager):
+    def __init__(self):
         self.browser = None
         self.context = None
         self.page = None
         self.signed_in_civitai_generation_url = None
-        self.state_manager = state_manager
         self.page_tasks: list[Task] = []
 
     async def init_browser(self):
@@ -59,7 +56,7 @@ class BrowserManager:
         )
         self.context.set_default_timeout(INTERACTION_TIMEOUT)
         await self.init_page(str(self.signed_in_civitai_generation_url))
-        self.state_manager.update_injection_extraction_state(InjectionExtractionState.BROWSER_OPEN)
+        self.browser_started_event = True
 
     async def close_page(self) -> None:
         canceled_count: int = 0
@@ -117,7 +114,7 @@ class BrowserManager:
 
         self.signed_in_civitai_generation_url = civitai_connection_url
         logger.debug(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
-        while self.state_manager.injection_extraction_state != InjectionExtractionState.BROWSER_OPEN:
+        while not self.browser_started_event:
             await asyncio.sleep(1)
 
     async def enter_generation_perspective(self):

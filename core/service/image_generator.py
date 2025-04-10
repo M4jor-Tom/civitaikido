@@ -25,11 +25,12 @@ class ImageGenerator:
         await self.browser_manager.page.locator(civitai_tip_selector).fill("0%")
         logger.debug(DONE_PREFIX + "give_no_tips")
 
-    async def generate_all_possible(self) -> None:
+    async def launch_all_possible_generations(self) -> None:
         logger.debug(WAIT_PREFIX + "generate_all_possible")
-        await self.generate_till_no_buzz()
+        await self.launch_all_generations()
+        await self.browser_manager.page.locator(all_jobs_done_selector).wait_for(timeout=INTERACTION_TIMEOUT)
         await like_all_pictures(self.browser_manager.page)
-        await self.generate_till_no_buzz()
+        await self.launch_all_generations()
         logger.debug(DONE_PREFIX + "generate_all_possible")
 
     async def confirm_start_generating_yellow_button(self):
@@ -48,8 +49,7 @@ class ImageGenerator:
         await self.browser_manager.page.locator(generation_quantity_input_selector).fill("4")
         logger.debug(DONE_PREFIX + "set_input_quantity")
 
-    async def generate_till_no_buzz(self):
-        logger.debug(WAIT_PREFIX + "generate_till_no_buzz")
+    async def launch_all_generations(self):
         logger.debug(WAIT_PREFIX + "launch_all_generations")
         await self.confirm_start_generating_yellow_button()
         await self.claim_buzz()
@@ -64,5 +64,3 @@ class ImageGenerator:
                 await self.browser_manager.page.locator(generation_button_selector).click()
                 await asyncio.sleep(3)
         logger.debug(DONE_PREFIX + "launch_all_generations")
-        await self.browser_manager.page.locator(all_jobs_done_selector).wait_for(timeout=INTERACTION_TIMEOUT)
-        logger.debug(DONE_PREFIX + "generate_till_no_buzz")

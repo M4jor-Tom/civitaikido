@@ -13,6 +13,6 @@ class SceneManager:
         return Scene(
             session_id=self.session_id,
             civitai_url=self.browser_manager.signed_in_civitai_generation_url,
-            injected_file=self.prompt_tree_builder.file,
+            injected_file=self.prompt_tree_builder.file_dto,
             injection_extraction_state=self.state_manager.injection_extraction_state.value
         )

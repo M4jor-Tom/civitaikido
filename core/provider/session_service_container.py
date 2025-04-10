@@ -12,7 +12,7 @@ class SessionServiceContainer:
     def __init__(self, session_id: str):
         self.session_id = session_id
         self.state_manager: StateManager = StateManager(InjectionExtractionState.INIT)
-        self.browser_manager: BrowserManager = BrowserManager(self.state_manager)
+        self.browser_manager: BrowserManager = BrowserManager()
         self.prompt_tree_builder: PromptTreeBuilder = PromptTreeBuilder()
         self.scene_manager: SceneManager = SceneManager(
             session_id=session_id,

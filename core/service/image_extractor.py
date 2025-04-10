@@ -3,9 +3,10 @@ import os
 from urllib.parse import urlparse
 import logging
 
-from core.constant import images_selector
+from core.constant import images_selector, all_jobs_done_selector
 from . import BrowserManager
 from core.util import DONE_PREFIX, enter_feed_view
+from ..config import IMAGES_GENERATION_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class ImageExtractor:
             output_dir_in_home: Directory where images will be saved.
         """
         output_dir: str = os.environ['HOME'] + '/' + output_dir_in_home
+        await self.browser_manager.page.locator(all_jobs_done_selector).wait_for(timeout=IMAGES_GENERATION_TIMEOUT)
         await enter_feed_view(self.browser_manager.page)
         os.makedirs(output_dir, exist_ok=True)
         img_elements = await self.browser_manager.page.locator(images_selector).all()
