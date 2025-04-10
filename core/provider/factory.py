@@ -3,7 +3,7 @@ from functools import lru_cache
 from fastapi import Depends
 
 from core.provider import SessionServiceRegistry, SessionServiceContainer
-from core.service import StateManager, BrowserManager, ProfilePreparator, XmlParser, PromptBuilder, \
+from core.service import StateManager, BrowserManager, ProfilePreparator, PromptTreeBuilder, PromptBuilder, \
     PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor, RoutineExecutor
 from core.service.scene_manager import SceneManager
 
@@ -34,12 +34,12 @@ async def get_profile_preparator(
     container: SessionServiceContainer = registry.get_or_create(session_id)
     return container.profile_preparator
 
-async def get_xml_parser(
+async def get_prompt_tree_builder(
     session_id: str,
     registry: SessionServiceRegistry = Depends(get_session_service_registry),
-) -> XmlParser:
+) -> PromptTreeBuilder:
     container: SessionServiceContainer = registry.get_or_create(session_id)
-    return container.xml_parser
+    return container.prompt_tree_builder
 
 async def get_prompt_builder(
     session_id: str,

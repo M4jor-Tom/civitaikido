@@ -17,14 +17,12 @@ async def inject_generate_extract(
         routine_executor: RoutineExecutor = Depends(get_routine_executor),
         scene_manager: SceneManager = Depends(get_scene_manager),
         overridden_state: InjectionExtractionState | None = None,
-        open_new_browser: bool = True
     ):
     try:
         await routine_executor.execute_routine(
             session_url=session_url,
             file=file,
             inject_seed=inject_seed,
-            open_new_browser=open_new_browser,
             close_browser_when_finished=close_browser_when_finished,
             overridden_state=overridden_state)
         return await scene_manager.build_scene()

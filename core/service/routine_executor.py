@@ -1,11 +1,11 @@
-import asyncio
 import logging
 
 from fastapi import UploadFile
 
 from core.config import GENERATION_DEFAULT_DIR
+from core.model import build_scene_dto_from_file, FileSceneDto
 from core.model.injection_extraction_state import InjectionExtractionState
-from core.service import StateManager, BrowserManager, ProfilePreparator, XmlParser, PromptBuilder, PromptInjector, \
+from core.service import StateManager, BrowserManager, ProfilePreparator, PromptTreeBuilder, PromptBuilder, PromptInjector, \
     ImageGenerator, ImageExtractor
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class RoutineExecutor:
                  state_manager: StateManager,
                  browser_manager: BrowserManager,
                  profile_preparator: ProfilePreparator,
-                 xml_parser: XmlParser,
+                 prompt_tree_builder: PromptTreeBuilder,
                  prompt_builder: PromptBuilder,
                  prompt_injector: PromptInjector,
                  image_generator: ImageGenerator,
@@ -26,7 +26,7 @@ class RoutineExecutor:
         self.state_manager: StateManager = state_manager
         self.browser_manager: BrowserManager = browser_manager
         self.profile_preparator: ProfilePreparator = profile_preparator
-        self.xml_parser: XmlParser = xml_parser
+        self.prompt_tree_builder: PromptTreeBuilder = prompt_tree_builder
         self.prompt_builder: PromptBuilder = prompt_builder
         self.prompt_injector: PromptInjector = prompt_injector
         self.image_generator: ImageGenerator = image_generator
@@ -37,6 +37,7 @@ class RoutineExecutor:
                                    file: UploadFile,
                                    inject_seed: bool = False,
                                    overridden_state: InjectionExtractionState | None = None):
+        file_scene_dto: FileSceneDto = build_scene_dto_from_file(file=file)
         if overridden_state:
             logger.info(f"Overriding entry state to {overridden_state}")
             self.state_manager.update_injection_extraction_state(overridden_state)
@@ -48,14 +49,13 @@ class RoutineExecutor:
                 await self.profile_preparator.prepare_profile()
                 self.state_manager.update_injection_extraction_state(InjectionExtractionState.PROFILE_PREPARED)
             elif self.state_manager.injection_extraction_state == InjectionExtractionState.PROFILE_PREPARED:
-                await self.prompt_injector.inject(self.prompt_builder.build_from_xml(await self.xml_parser.parse_xml(file)), inject_seed)
+                await self.prompt_injector.inject(self.prompt_builder.build_from_xml(await self.prompt_tree_builder.build_prompt_tree(file)), inject_seed)
                 self.state_manager.update_injection_extraction_state(InjectionExtractionState.PROMPT_INJECTED)
             elif self.state_manager.injection_extraction_state == InjectionExtractionState.PROMPT_INJECTED:
                 await self.image_generator.generate_all_possible()
                 self.state_manager.update_injection_extraction_state(InjectionExtractionState.IMAGES_GENERATED)
             elif self.state_manager.injection_extraction_state == InjectionExtractionState.IMAGES_GENERATED:
-                await self.image_extractor.save_images_from_page(
-                    GENERATION_DEFAULT_DIR + "/" + str(file.filename).split('.xml')[0])
+                await self.image_extractor.save_images_from_page(file_scene_dto.build_generation_path(GENERATION_DEFAULT_DIR))
                 self.state_manager.update_injection_extraction_state(InjectionExtractionState.IMAGES_EXTRACTED)
             elif self.state_manager.injection_extraction_state == InjectionExtractionState.IMAGES_EXTRACTED:
                 if close_browser_when_finished:
@@ -64,12 +64,10 @@ class RoutineExecutor:
     async def execute_routine(self,
                               session_url: str,
                               file: UploadFile,
-                              open_new_browser: bool,
                               inject_seed: bool = False,
                               close_browser_when_finished: bool = True,
                               overridden_state: InjectionExtractionState | None = None):
-        if open_new_browser:
-            await self.browser_manager.open_browser(session_url)
+        await self.browser_manager.open_browser(session_url)
         await self.finite_state_machine(close_browser_when_finished,
                                       file,
                                       inject_seed,

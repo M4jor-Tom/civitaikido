@@ -6,6 +6,6 @@ from .prompt_builder import PromptBuilder
 from .image_extractor import ImageExtractor
 from .image_generator import ImageGenerator
 from .prompt_injector import PromptInjector
-from .xml_parser import XmlParser
+from .prompt_tree_builder import PromptTreeBuilder
 from .routine_executor import RoutineExecutor
 from .scene_manager import SceneManager

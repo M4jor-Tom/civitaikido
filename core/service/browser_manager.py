@@ -113,6 +113,8 @@ class BrowserManager:
         if not civitai_connection_url.startswith("http"):
             raise HTTPException(status_code=400, detail="Invalid URL format")
 
+        await self.shutdown_if_possible()
+
         self.signed_in_civitai_generation_url = civitai_connection_url
         logger.debug(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
         while self.state_manager.injection_extraction_state != InjectionExtractionState.BROWSER_OPEN:
