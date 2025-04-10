@@ -20,11 +20,11 @@ class BuzzCollector:
         await self.profile_preparator.prepare_profile()
         await like_all_pictures(self.browser_manager.page)
     async def collect_buzz_for_urls(self, urls: list[str]) -> None:
-        logger.info(WAIT_PREFIX + "collect_buzz_for_urls")
+        logger.debug(WAIT_PREFIX + "collect_buzz_for_urls")
         for url in urls:
             if self.browser_manager.signed_in_civitai_generation_url != url:
                 await self.browser_manager.init_page(url)
             await asyncio.gather(
                 try_action("profile_preparator.prepare_profile", self.prepare_and_like_pictures)
             )
-        logger.info(DONE_PREFIX + "collect_buzz_for_urls")
+        logger.debug(DONE_PREFIX + "collect_buzz_for_urls")

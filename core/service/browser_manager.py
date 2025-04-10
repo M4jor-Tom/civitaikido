@@ -31,14 +31,14 @@ class BrowserManager:
 
     async def init_browser(self):
         """Initializes the browser when the URL is set."""
-        logger.info(WAIT_PREFIX + "Browser to initialise...")
+        logger.debug(WAIT_PREFIX + "Browser to initialise...")
 
         # Wait until a URL is set
         while self.signed_in_civitai_generation_url is None:
             logger.debug("Poll for signed_in_civitai_generation_url to have a value...")
             await asyncio.sleep(1)
 
-        logger.info(DONE_PREFIX + "URL received: " + str(self.signed_in_civitai_generation_url))
+        logger.debug(DONE_PREFIX + "URL received: " + str(self.signed_in_civitai_generation_url))
 
         # Start Playwright
         playwright = await async_playwright().start()
@@ -114,7 +114,7 @@ class BrowserManager:
             raise HTTPException(status_code=400, detail="Invalid URL format")
 
         self.signed_in_civitai_generation_url = civitai_connection_url
-        logger.info(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
+        logger.debug(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
         while self.state_manager.injection_extraction_state != InjectionExtractionState.BROWSER_OPEN:
             await asyncio.sleep(1)
 
