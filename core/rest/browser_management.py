@@ -6,7 +6,7 @@ from core.constant import low_layer
 browser_management_router = APIRouter()
 
 @browser_management_router.post("/open_browser", tags=[low_layer])
-async def open_browser(civitai_connection_url: str, ask_first_session_preparation: bool,
+async def open_browser(civitai_connection_url: str,
                        browser_manager: BrowserManager = Depends(get_browser_manager),
                        profile_preparator: ProfilePreparator = Depends(get_profile_preparator)):
     await browser_manager.open_browser(civitai_connection_url)

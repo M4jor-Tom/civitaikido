@@ -5,7 +5,6 @@ from fastapi import Depends
 from core.provider import SessionServiceRegistry, SessionServiceContainer
 from core.service import StateManager, BrowserManager, ProfilePreparator, PromptTreeBuilder, PromptBuilder, \
     PromptInjector, BuzzCollector, ImageGenerator, ImageExtractor, RoutineExecutor
-from core.service.scene_manager import SceneManager
 
 service_registry = SessionServiceRegistry()
 
@@ -82,10 +81,3 @@ async def get_routine_executor(
 ) -> RoutineExecutor:
     container: SessionServiceContainer = await registry.get_or_create(session_id)
     return container.routine_executor
-
-async def get_scene_manager(
-    session_id: str,
-    registry: SessionServiceRegistry = Depends(get_session_service_registry)
-) -> SceneManager:
-    container: SessionServiceContainer = await registry.get_or_create(session_id)
-    return container.scene_manager

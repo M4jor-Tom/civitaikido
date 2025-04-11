@@ -1,6 +1,6 @@
 from enum import Enum
 
-class InjectionExtractionState(Enum):
+class InjectionExtractionState(str, Enum):
     INIT: str = "INIT"
     PROFILE_PREPARED: str = "PROFILE_PREPARED"
     PROMPT_INJECTED: str = "PROMPT_INJECTED"

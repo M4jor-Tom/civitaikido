@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 
 from core.config import GENERATION_DEFAULT_DIR
 from core.constant import low_layer
-from core.model import FileSceneDto, build_generation_path_from_generation_dir_and_file
+from core.model import FileStateDto, build_generation_path_from_generation_dir_and_file
 from core.provider import get_prompt_tree_builder, get_prompt_builder, get_prompt_injector
 from core.service import PromptTreeBuilder, PromptBuilder, PromptInjector
 
@@ -20,8 +20,7 @@ async def inject_prompt(file: UploadFile = File(...), inject_seed: bool = False,
         A JSON response indicating whether the XML is valid or not.
     """
     try:
-        generation_path: str = build_generation_path_from_generation_dir_and_file(GENERATION_DEFAULT_DIR, file)
-        root = await prompt_tree_builder.build_prompt_tree(file, FileSceneDto(generation_path=generation_path))
+        root = await prompt_tree_builder.build_prompt_tree(file)
         prompt = prompt_builder.build_from_xml(root)
         await prompt_injector.inject(prompt, inject_seed)
     except et.XMLSyntaxError as e:

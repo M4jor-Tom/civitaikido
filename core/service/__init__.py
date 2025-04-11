@@ -8,4 +8,3 @@ from .image_generator import ImageGenerator
 from .prompt_injector import PromptInjector
 from .prompt_tree_builder import PromptTreeBuilder
 from .routine_executor import RoutineExecutor
-from .scene_manager import SceneManager

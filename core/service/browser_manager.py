@@ -26,16 +26,28 @@ class BrowserManager:
         self.signed_in_civitai_generation_url = None
         self.page_tasks: list[Task] = []
 
-    async def init_browser(self):
-        """Initializes the browser when the URL is set."""
-        logger.debug(WAIT_PREFIX + "Browser to initialise...")
+    async def open_browser(self, civitai_connection_url: str):
+        """Sets the signed-in URL and unblocks the browser startup."""
+        if not civitai_connection_url.startswith("http"):
+            raise HTTPException(status_code=400, detail="Invalid URL format")
 
-        # Wait until a URL is set
-        while self.signed_in_civitai_generation_url is None:
-            logger.debug("Poll for signed_in_civitai_generation_url to have a value...")
+        await self.shutdown_if_possible()
+
+        self.signed_in_civitai_generation_url = civitai_connection_url
+        logger.debug(f"{DONE_PREFIX}URL set: {self.signed_in_civitai_generation_url}")
+        while not self.browser_started_event:
             await asyncio.sleep(1)
 
-        logger.debug(DONE_PREFIX + "URL received: " + str(self.signed_in_civitai_generation_url))
+    async def init_browser(self):
+        """Initializes the browser when the URL is set."""
+        logger.debug(f"{WAIT_PREFIX}Browser init...")
+
+        # Wait until a URL is set
+        while not self.signed_in_civitai_generation_url:
+            logger.debug(f"Poll for signed_in_civitai_generation_url to have a value... ({self.signed_in_civitai_generation_url})")
+            await asyncio.sleep(1)
+
+        logger.debug(f"{DONE_PREFIX}URL received: {self.signed_in_civitai_generation_url}")
 
         # Start Playwright
         playwright = await async_playwright().start()
@@ -57,6 +69,20 @@ class BrowserManager:
         self.context.set_default_timeout(INTERACTION_TIMEOUT)
         await self.init_page(str(self.signed_in_civitai_generation_url))
         self.browser_started_event = True
+
+    async def shutdown_if_possible(self) -> None:
+        if self.page:
+            await self.close_page()
+            logger.info("🛑 Page closed!")
+            self.page = None
+        if self.context:
+            await self.context.close()
+            logger.info("🛑 Context closed!")
+            self.context = None
+        if self.browser:
+            await self.browser.close()
+            logger.info("🛑 Browser closed!")
+            self.browser = None
 
     async def close_page(self) -> None:
         canceled_count: int = 0
@@ -90,32 +116,6 @@ class BrowserManager:
 
         # Apply stealth mode
         await stealth_async(self.page)
-
-    async def shutdown_if_possible(self) -> None:
-        if self.page:
-            await self.close_page()
-            logger.info("🛑 Page closed!")
-            self.page = None
-        if self.context:
-            await self.context.close()
-            logger.info("🛑 Context closed!")
-            self.context = None
-        if self.browser:
-            await self.browser.close()
-            logger.info("🛑 Browser closed!")
-            self.browser = None
-
-    async def open_browser(self, civitai_connection_url: str):
-        """Sets the signed-in CivitAI generation URL and unblocks the browser startup."""
-        if not civitai_connection_url.startswith("http"):
-            raise HTTPException(status_code=400, detail="Invalid URL format")
-
-        await self.shutdown_if_possible()
-
-        self.signed_in_civitai_generation_url = civitai_connection_url
-        logger.debug(WAIT_PREFIX + "message: URL set successfully; Session prepared for xml injection, url: " + self.signed_in_civitai_generation_url)
-        while not self.browser_started_event:
-            await asyncio.sleep(1)
 
     async def enter_generation_perspective(self):
         await self.enter_generation_perspective_by_buttons()
