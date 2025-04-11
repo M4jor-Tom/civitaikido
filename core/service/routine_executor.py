@@ -1,10 +1,13 @@
+import asyncio
 import logging
 
 from fastapi import UploadFile
+from playwright.async_api import TimeoutError
 
-from core.config import GENERATION_DEFAULT_DIR
+from core.config import GENERATION_DEFAULT_DIR, MAX_REVIVES
 from core.model import FileStateDto, build_generation_path_from_generation_dir_and_file, Prompt, State
 from core.model.injection_extraction_state import InjectionExtractionState
+from core.model import build_revived_state
 from core.service import StateManager, BrowserManager, ProfilePreparator, PromptTreeBuilder, PromptBuilder, PromptInjector, \
     ImageGenerator, ImageExtractor
 
@@ -31,7 +34,7 @@ class RoutineExecutor:
 
     async def finite_state_machine(self, input_state: State) -> State:
         if input_state.injection_extraction_state != InjectionExtractionState.INIT:
-            logger.info(f"Overriding entry state to {input_state.injection_extraction_state}")
+            logger.info(f"Overridden entry state detected to {input_state.injection_extraction_state}")
         while input_state.injection_extraction_state != InjectionExtractionState.TERMINATED:
             if input_state.injection_extraction_state == InjectionExtractionState.INIT:
                 await self.profile_preparator.prepare_profile()
@@ -69,5 +72,10 @@ class RoutineExecutor:
             close_browser_when_finished=close_browser_when_finished
         )
         logger.info(f"Starting on state {self.state_manager.state}")
-        await self.browser_manager.open_browser(session_url)
-        return await self.finite_state_machine(self.state_manager.state)
+        while self.state_manager.state.injection_extraction_state != InjectionExtractionState.TERMINATED:
+            await self.browser_manager.open_browser(session_url)
+            try:
+                self.state_manager.state = await self.finite_state_machine(self.state_manager.state)
+            except TimeoutError:
+                self.state_manager.state = build_revived_state(self.state_manager.state, MAX_REVIVES)
+        return self.state_manager.state
