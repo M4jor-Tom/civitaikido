@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Form, File, UploadFile
-from playwright.async_api import TimeoutError
 
 from core.constant import main
 from core.model import State, InjectionExtractionState
@@ -26,7 +25,5 @@ async def inject_generate_extract(
             close_browser_when_finished=close_browser_when_finished,
             overridden_state=overridden_state)
         return f"Excited on state {output_state}"
-    except TimeoutError:
-        return f"Timed out on state {state_manager.state}"
     except Exception as e:
         return f"Failed on state {state_manager.state} with exception: {e}"

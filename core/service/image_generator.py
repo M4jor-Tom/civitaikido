@@ -9,6 +9,7 @@ from .browser_manager import BrowserManager
 from ..config import INTERACTION_TIMEOUT
 from ..util import click_if_visible
 from ..util.buzz_collection import like_all_pictures
+from ..util.page_preparation import confirm_start_generating_yellow_button
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +34,6 @@ class ImageGenerator:
         await self.launch_generations_batch()
         logger.debug(DONE_PREFIX + "generate_all_possible")
 
-    async def confirm_start_generating_yellow_button(self):
-        logger.debug(WAIT_PREFIX + "confirm_start_generating_yellow_button")
-        await click_if_visible("confirm_start_generating_yellow_button",
-                               self.browser_manager.page.get_by_role("button", name="I Confirm, Start Generating"))
-        logger.debug(DONE_PREFIX + "confirm_start_generating_yellow_button")
-
     async def claim_buzz(self):
         logger.debug(WAIT_PREFIX + "claim_buzz")
         await click_if_visible("claim_buzz", self.browser_manager.page.locator(claim_buzz_button_selector))
@@ -51,7 +46,7 @@ class ImageGenerator:
 
     async def launch_generations_batch(self):
         logger.debug(WAIT_PREFIX + "launch_all_generations")
-        await self.confirm_start_generating_yellow_button()
+        await confirm_start_generating_yellow_button(self.browser_manager.page)
         await self.claim_buzz()
         await self.set_input_quantity()
         await self.give_no_tips()

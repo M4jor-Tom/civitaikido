@@ -1,10 +1,12 @@
 import logging
 
 from fastapi import UploadFile
+from playwright.async_api import TimeoutError
 
-from core.config import GENERATION_DEFAULT_DIR
+from core.config import GENERATION_DEFAULT_DIR, MAX_REVIVES
 from core.model import FileStateDto, build_generation_path_from_generation_dir_and_file, Prompt, State
 from core.model.injection_extraction_state import InjectionExtractionState
+from core.model import build_revived_state
 from core.service import StateManager, BrowserManager, ProfilePreparator, PromptTreeBuilder, PromptBuilder, PromptInjector, \
     ImageGenerator, ImageExtractor
 
@@ -31,24 +33,27 @@ class RoutineExecutor:
 
     async def finite_state_machine(self, input_state: State) -> State:
         if input_state.injection_extraction_state != InjectionExtractionState.INIT:
-            logger.info(f"Overriding entry state to {input_state.injection_extraction_state}")
-        while input_state.injection_extraction_state != InjectionExtractionState.TERMINATED:
-            if input_state.injection_extraction_state == InjectionExtractionState.INIT:
-                await self.profile_preparator.prepare_profile()
-                self.state_manager.update_injection_extraction_state(InjectionExtractionState.PROFILE_PREPARED)
-            elif input_state.injection_extraction_state == InjectionExtractionState.PROFILE_PREPARED:
-                await self.prompt_injector.inject(input_state.injected_file.prompt, input_state.inject_seed)
-                self.state_manager.update_injection_extraction_state(InjectionExtractionState.PROMPT_INJECTED)
-            elif input_state.injection_extraction_state == InjectionExtractionState.PROMPT_INJECTED:
-                await self.image_generator.launch_all_possible_generations()
-                self.state_manager.update_injection_extraction_state(InjectionExtractionState.IMAGES_GENERATION_LAUNCHED)
-            elif input_state.injection_extraction_state == InjectionExtractionState.IMAGES_GENERATION_LAUNCHED:
-                await self.image_extractor.save_images_from_page(input_state.injected_file.generation_path)
-                self.state_manager.update_injection_extraction_state(InjectionExtractionState.IMAGES_EXTRACTED)
-            elif input_state.injection_extraction_state == InjectionExtractionState.IMAGES_EXTRACTED:
-                if input_state.close_browser_when_finished:
-                    await self.browser_manager.shutdown_if_possible()
-                self.state_manager.update_injection_extraction_state(InjectionExtractionState.TERMINATED)
+            logger.info(f"Overridden entry state detected to {input_state.injection_extraction_state}")
+        try:
+            while input_state.injection_extraction_state != InjectionExtractionState.TERMINATED:
+                if input_state.injection_extraction_state == InjectionExtractionState.INIT:
+                    await self.profile_preparator.prepare_profile()
+                    self.state_manager.update_injection_extraction_state(InjectionExtractionState.PROFILE_PREPARED)
+                elif input_state.injection_extraction_state == InjectionExtractionState.PROFILE_PREPARED:
+                    await self.prompt_injector.inject(input_state.injected_file.prompt, input_state.inject_seed)
+                    self.state_manager.update_injection_extraction_state(InjectionExtractionState.PROMPT_INJECTED)
+                elif input_state.injection_extraction_state == InjectionExtractionState.PROMPT_INJECTED:
+                    await self.image_generator.launch_all_possible_generations()
+                    self.state_manager.update_injection_extraction_state(InjectionExtractionState.IMAGES_GENERATION_LAUNCHED)
+                elif input_state.injection_extraction_state == InjectionExtractionState.IMAGES_GENERATION_LAUNCHED:
+                    await self.image_extractor.save_images_from_page(input_state.injected_file.generation_path)
+                    self.state_manager.update_injection_extraction_state(InjectionExtractionState.IMAGES_EXTRACTED)
+                elif input_state.injection_extraction_state == InjectionExtractionState.IMAGES_EXTRACTED:
+                    if input_state.close_browser_when_finished:
+                        await self.browser_manager.shutdown_if_possible()
+                    self.state_manager.update_injection_extraction_state(InjectionExtractionState.TERMINATED)
+        except TimeoutError:
+            logger.warning(f"Timed out on state {input_state}")
         return input_state
     async def execute_routine(self,
                               session_url: str,
@@ -70,4 +75,6 @@ class RoutineExecutor:
         )
         logger.info(f"Starting on state {self.state_manager.state}")
         await self.browser_manager.open_browser(session_url)
-        return await self.finite_state_machine(self.state_manager.state)
+        while self.state_manager.state.injection_extraction_state != InjectionExtractionState.TERMINATED:
+            self.state_manager.state = build_revived_state(await self.finite_state_machine(self.state_manager.state), MAX_REVIVES)
+        return self.state_manager.state

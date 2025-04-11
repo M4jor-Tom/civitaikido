@@ -7,6 +7,7 @@ from core.constant import images_selector, all_jobs_done_selector
 from . import BrowserManager
 from core.util import DONE_PREFIX, enter_feed_view
 from ..config import IMAGES_GENERATION_TIMEOUT
+from ..util.page_preparation import confirm_start_generating_yellow_button
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class ImageExtractor:
             output_dir_in_home: Directory where images will be saved.
         """
         output_dir: str = os.environ['HOME'] + '/' + output_dir_in_home
+        await confirm_start_generating_yellow_button(self.browser_manager.page)
         await self.browser_manager.page.locator(all_jobs_done_selector).wait_for(timeout=IMAGES_GENERATION_TIMEOUT)
         await enter_feed_view(self.browser_manager.page)
         os.makedirs(output_dir, exist_ok=True)
