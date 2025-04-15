@@ -5,6 +5,7 @@ env = Env()
 
 ROLE = env.get_role(Role.injector_extractor)
 PROFILE = env.get_profile(Profile.PROD)
+APP_HOST = env.get("APP_HOST", "127.0.0.1")
 APP_PORT = env.get_int("APP_PORT", 8000)
 LOGGING_LEVEL = env.get("LOGGING_LEVEL", "INFO")
 HEADLESS = env.get_bool("HEADLESS", True)

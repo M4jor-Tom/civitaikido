@@ -1,5 +1,5 @@
 # ───────────── Base ─────────────
-FROM python:3.11-slim
+FROM python:3.12-slim AS env
 
 # ───────────── Environment ─────────────
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -28,14 +28,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ───────────── App Setup ─────────────
 WORKDIR /app
 
-COPY ../requirements.txt /app/
+COPY requirements.txt /app/
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt \
     && playwright install --with-deps
 
+
+# ───────────── Stage 2: App ─────────────
+FROM env AS final
+
 # ───────────── App Code ─────────────
-COPY .. /app
+COPY app /app
+
+# ───────────── App Networking ─────────────
+EXPOSE 8000
+ENV PROFILE=PROD
+ENV APP_HOST=0.0.0.0
 
 # ───────────── Entrypoint ─────────────
 CMD ["python", "main.py"]

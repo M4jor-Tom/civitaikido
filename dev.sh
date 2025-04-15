@@ -6,6 +6,7 @@ if [[ $ROLE == "" ]]; then
     export ROLE=injector_extractor
 fi
 if [[ $PROFILE != "" ]] && [[ $ROLE != "" ]]; then
+  cd app
   python main.py
   exit 0
 else

@@ -1,0 +1,13 @@
+services:
+  injector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - thet4/civitaikido:dev
+    environment:
+      - ROLE=injector_extractor
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${HOME}/civitai/images/generation/:/root/civitai/images/generation

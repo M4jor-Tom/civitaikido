@@ -12,11 +12,11 @@ class Env:
         role = self.get_role(Role.injector_extractor)
         profile = self.get_profile(Profile.PROD)
         env_path = f".env.d/{role.value}.env"
-        if Path(env_path).exists():
-            if profile == Profile.DEV:
-                load_dotenv(env_path, override=True)
-        else:
-            raise EnvironmentError(f"environment file: {env_path} does not exist")
+        if profile == Profile.DEV:
+            if Path(env_path).exists():
+                    load_dotenv(env_path, override=True)
+            else:
+                raise EnvironmentError(f"environment file: {env_path} does not exist")
 
     def get(self, key: str, default: str | None = None) -> str:
         value = os.getenv(key, default)

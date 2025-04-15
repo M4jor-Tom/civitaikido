@@ -1,8 +1,0 @@
-services:
-  injector:
-    build: ..
-    environment:
-      - PROFILE=PROD
-      - ROLE=INJECTOR_EXTRACTOR
-    ports:
-      - "8000:8000"
