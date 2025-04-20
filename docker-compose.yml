@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      tags:
-        - thet4/civitaikido:dev
+    image: thet4/civitaikido:dev
+    container_name: civitaikido
     environment:
       - ROLE=injector_extractor
     ports:
