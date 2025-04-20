@@ -4,8 +4,7 @@ from fastapi import UploadFile
 from playwright.async_api import TimeoutError
 
 from core.config import GENERATION_DEFAULT_DIR, MAX_REVIVES
-from core.model import FileStateDto, build_generation_path_from_generation_dir_and_file, Prompt, State
-from core.model.injection_extraction_state import InjectionExtractionState
+from core.model import FileStateDto, build_generation_path_from_generation_dir_and_file, Prompt, State, InjectionExtractionState
 from core.model import build_revived_state
 from core.service import StateManager, BrowserManager, ProfilePreparator, PromptTreeBuilder, PromptBuilder, PromptInjector, \
     ImageGenerator, ImageExtractor

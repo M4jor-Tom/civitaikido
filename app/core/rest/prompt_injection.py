@@ -1,9 +1,7 @@
 import lxml.etree as et
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 
-from core.config import GENERATION_DEFAULT_DIR
 from core.constant import low_layer
-from core.model import FileStateDto, build_generation_path_from_generation_dir_and_file
 from core.provider import get_prompt_tree_builder, get_prompt_builder, get_prompt_injector
 from core.service import PromptTreeBuilder, PromptBuilder, PromptInjector
 

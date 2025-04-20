@@ -1,5 +1,5 @@
 import logging
-from core.constant.logging_strips import DONE_PREFIX, WAIT_PREFIX, SKIP_PREFIX
+from core.constant import DONE_PREFIX, WAIT_PREFIX, SKIP_PREFIX
 
 logger = logging.getLogger(__name__)
 

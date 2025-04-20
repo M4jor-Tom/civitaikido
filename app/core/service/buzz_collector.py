@@ -2,11 +2,10 @@ import asyncio
 
 from core.constant import WAIT_PREFIX, DONE_PREFIX
 from core.service import BrowserManager, ProfilePreparator
-from core.util import try_action
+from core.util import try_action, like_all_pictures
 
 import logging
 
-from core.util.buzz_collection import like_all_pictures
 
 logger = logging.getLogger(__name__)
 

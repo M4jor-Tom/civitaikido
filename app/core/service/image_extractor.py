@@ -3,9 +3,9 @@ import os
 from urllib.parse import urlparse
 import logging
 
-from core.constant import images_selector, all_jobs_done_selector
+from core.constant import images_selector, all_jobs_done_selector, DONE_PREFIX
 from . import BrowserManager
-from core.util import DONE_PREFIX, enter_feed_view
+from core.util import enter_feed_view
 from ..config import IMAGES_GENERATION_TIMEOUT
 from ..util.page_preparation import confirm_start_generating_yellow_button
 

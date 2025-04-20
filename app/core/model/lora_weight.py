@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from core.model.resource import Resource
+from core.model import Resource
 
 class LoraWeight(BaseModel):
     lora: Resource

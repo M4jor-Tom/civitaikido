@@ -1,4 +1,4 @@
-from core.model.injection_extraction_state import InjectionExtractionState
+from core.model import InjectionExtractionState
 from core.provider import SessionServiceContainer
 import logging
 
