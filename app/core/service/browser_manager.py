@@ -95,11 +95,11 @@ class BrowserManager:
 
     async def init_page(self, new_page_url: str) -> None:
         new_page: Page = await self.context.new_page()
-        self.page_tasks.append(asyncio.create_task(remove_cookies(new_page)))
-        self.page_tasks.append(asyncio.create_task(skip_getting_started(new_page)))
         if self.page:
             await self.close_page()
         self.page = new_page
+        self.page_tasks.append(asyncio.create_task(remove_cookies(self.page)))
+        self.page_tasks.append(asyncio.create_task(skip_getting_started(self.page)))
         # await self.page.add_init_script(
         #    """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""
         #)
