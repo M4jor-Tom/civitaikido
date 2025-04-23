@@ -1,10 +1,12 @@
 from core.model import InjectionExtractionState
 from core.provider import SessionServiceContainer
+from core.config import session_id_var
 import logging
 
 logger = logging.getLogger(__name__)
 
 def build_session(session_id: str) -> SessionServiceContainer:
+    session_id_var.set(session_id)
     container = SessionServiceContainer(session_id)
     logger.debug(f"Built container for session_id: {session_id}")
     container.init()

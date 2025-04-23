@@ -8,13 +8,20 @@ def setup_logging(log_level: str) -> None:
         "disable_existing_loggers": False,
         "formatters": {
             "default": {
-                "format": "[%(asctime)s] %(levelname)s in %(name)s: %(message)s",
+                "()": "core.config.SafeFormatter",  # Use custom formatter
+                "format": "[%(asctime)s] %(levelname)s in %(name)s [%(session_id)s]: %(message)s",
+            },
+        },
+        "filters": {
+            "session": {
+                "()": "core.config.SessionIDFilter",  # Register filter
             },
         },
         "handlers": {
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "default",
+                "filters": ["session"],
                 "level": log_level,
             },
         },
