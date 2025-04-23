@@ -10,4 +10,4 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ${HOME}/civitai/images/generation/:/root/civitai/images/generation
+      - ${HOME}/civitai-dev/images/generation/:/root/civitai/images/generation

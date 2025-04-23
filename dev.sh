@@ -2,6 +2,7 @@
 
 export ROLE=$1
 export PROFILE=DEV
+export GENERATION_DEFAULT_DIR=civitai-dev/images/generation
 if [[ $ROLE == "" ]]; then
     export ROLE=injector_extractor
 fi
