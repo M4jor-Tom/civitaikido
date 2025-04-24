@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - '*'           # Run on any tag
-    branches:
-      - main
-      - master        # Also run on main/master for development builds
 
 jobs:
   docker:
@@ -39,4 +36,3 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             thet4/civitaikido:${{ steps.meta.outputs.tag }}
-
