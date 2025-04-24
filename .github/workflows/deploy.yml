@@ -36,3 +36,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             thet4/civitaikido:${{ steps.meta.outputs.tag }}
+            thet4/civitaikido:latest
