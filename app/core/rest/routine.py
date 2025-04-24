@@ -15,7 +15,7 @@ async def inject_generate_extract(
         close_browser_when_finished: bool = True,
         routine_executor: RoutineExecutor = Depends(get_routine_executor),
         state_manager: StateManager = Depends(get_state_manager),
-        overridden_state: InjectionExtractionState | None = None,
+        start_state: InjectionExtractionState = InjectionExtractionState.INIT,
     ):
     try:
         output_state: State = await routine_executor.execute_routine(
@@ -23,7 +23,7 @@ async def inject_generate_extract(
             file=file,
             inject_seed=inject_seed,
             close_browser_when_finished=close_browser_when_finished,
-            overridden_state=overridden_state)
-        return f"Excited on state {output_state}"
+            start_state=start_state)
+        return f"Exited on state {output_state}"
     except Exception as e:
         return f"Failed on state {state_manager.state} with exception: {e}"

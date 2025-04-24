@@ -32,7 +32,7 @@ class RoutineExecutor:
 
     async def finite_state_machine(self, input_state: State) -> State:
         if input_state.injection_extraction_state != InjectionExtractionState.INIT:
-            logger.info(f"Overridden entry state detected to {input_state.injection_extraction_state}")
+            logger.info(f"Non-init entry state detected: {input_state.injection_extraction_state}")
         try:
             while input_state.injection_extraction_state != InjectionExtractionState.TERMINATED:
                 if input_state.injection_extraction_state == InjectionExtractionState.INIT:
@@ -57,9 +57,9 @@ class RoutineExecutor:
     async def execute_routine(self,
                               session_url: str,
                               file: UploadFile,
+                              start_state: InjectionExtractionState,
                               inject_seed: bool = False,
-                              close_browser_when_finished: bool = True,
-                              overridden_state: InjectionExtractionState | None = None) -> State:
+                              close_browser_when_finished: bool = True) -> State:
         generation_path: str = build_generation_path_from_generation_dir_and_file(GENERATION_DEFAULT_DIR, file)
         prompt: Prompt = self.prompt_builder.build_from_xml(await self.prompt_tree_builder.build_prompt_tree(file))
         file_scene_dto: FileStateDto = FileStateDto(generation_path=generation_path, prompt=prompt)
@@ -67,7 +67,7 @@ class RoutineExecutor:
             session_id=self.state_manager.session_id,
             injected_file=file_scene_dto,
             civitai_url=session_url,
-            injection_extraction_state=overridden_state or InjectionExtractionState.INIT,
+            injection_extraction_state=start_state,
             inject_seed=inject_seed,
             revives=0,
             close_browser_when_finished=close_browser_when_finished
