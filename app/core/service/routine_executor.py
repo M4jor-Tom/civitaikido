@@ -59,9 +59,12 @@ class RoutineExecutor:
                               file: UploadFile,
                               start_state: InjectionExtractionState,
                               inject_seed: bool = False,
+                              prompt_hash_in_generation_dir: bool = False,
                               close_browser_when_finished: bool = True) -> State:
-        generation_path: str = build_generation_path_from_generation_dir_and_file(GENERATION_DEFAULT_DIR, file)
         prompt: Prompt = self.prompt_builder.build_from_xml(await self.prompt_tree_builder.build_prompt_tree(file))
+        generation_path: str = build_generation_path_from_generation_dir_and_file(GENERATION_DEFAULT_DIR, file)
+        if prompt_hash_in_generation_dir:
+            generation_path = generation_path + '-' + prompt.get_hash()
         file_scene_dto: FileStateDto = FileStateDto(generation_path=generation_path, prompt=prompt)
         self.state_manager.state = State(
             session_id=self.state_manager.session_id,

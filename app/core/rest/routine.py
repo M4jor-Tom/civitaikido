@@ -13,9 +13,10 @@ async def inject_generate_extract(
         file: UploadFile = File(...),
         inject_seed: bool = False,
         close_browser_when_finished: bool = True,
+        prompt_hash_in_generation_dir: bool = False,
         routine_executor: RoutineExecutor = Depends(get_routine_executor),
         state_manager: StateManager = Depends(get_state_manager),
-        start_state: InjectionExtractionState = InjectionExtractionState.INIT,
+        start_state: InjectionExtractionState = InjectionExtractionState.INIT
     ):
     try:
         output_state: State = await routine_executor.execute_routine(
@@ -23,6 +24,7 @@ async def inject_generate_extract(
             file=file,
             inject_seed=inject_seed,
             close_browser_when_finished=close_browser_when_finished,
+            prompt_hash_in_generation_dir=prompt_hash_in_generation_dir,
             start_state=start_state)
         return f"Exited on state {output_state}"
     except Exception as e:

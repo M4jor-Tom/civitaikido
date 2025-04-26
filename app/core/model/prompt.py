@@ -1,3 +1,5 @@
+import hashlib
+
 from pydantic import BaseModel, computed_field
 from core.model.resource import Resource
 from core.model.lora_weight import LoraWeight
@@ -16,6 +18,9 @@ class Prompt(BaseModel):
     cfg_scale: float
     seed: str | None
     clip_skip: int
+
+    def get_hash(self) -> str:
+        return 'md5-' + hashlib.md5(str(self).encode()).hexdigest()
 
     @computed_field
     @property
