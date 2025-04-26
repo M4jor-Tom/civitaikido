@@ -19,11 +19,11 @@ class Prompt(BaseModel):
 
     @computed_field
     @property
-    def ratio_selector_text(self) -> str | None:
+    def ratio_selector_text(self) -> str:
         if self.image_width_px == 832 and self.image_height_px == 1216:
             return 'Portrait832x1216'
         elif self.image_width_px == 1216 and self.image_height_px == 832:
             return 'Landscape1216x832'
         elif self.image_width_px == 1024 and self.image_height_px == 1024:
             return 'Square1024x1024'
-        return None
+        raise TypeError(f"Dimensions {self.image_width_px} x {self.image_height_px} unknown for civitai generation selection")

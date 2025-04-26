@@ -110,9 +110,7 @@ class PromptInjector:
         await self.write_positive_prompt(prompt.positive_prompt_text)
         if prompt.negative_prompt_text is not None:
             await self.write_negative_prompt(prompt.negative_prompt_text)
-        ratio_selector_text: str | None = prompt.ratio_selector_text
-        if ratio_selector_text is not None:
-            await self.set_ratio_by_text(ratio_selector_text)
+        await self.set_ratio_by_text(prompt.ratio_selector_text)
         await self.toggle_image_properties_accordion()
         await self.set_cfg_scale(prompt.cfg_scale)
         await self.set_sampler(prompt.sampler_name)
