@@ -1,7 +1,7 @@
 from asyncio import Task
 
 from fastapi import HTTPException
-from playwright.async_api import async_playwright, Browser, BrowserContext, Page, TimeoutError
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page, TimeoutError, ViewportSize
 from playwright_stealth.stealth import stealth_async
 import asyncio
 import logging
@@ -58,7 +58,7 @@ class BrowserManager:
                        "(KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
             locale="en-US",
             # locale="fr-FR",
-            viewport={"width": 1920, "height": 1080},
+            viewport=ViewportSize(dict(width=1920, height=1080)),
             java_script_enabled=True,
             ignore_https_errors=True,
             # timezone_id="America/New_York",
