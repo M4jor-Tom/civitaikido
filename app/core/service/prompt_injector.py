@@ -1,4 +1,7 @@
-from core.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX, resource_option_selector
+from core.constant import model_search_input_selector, WAIT_PREFIX, DONE_PREFIX, resource_option_selector, \
+    lora_weight_selector, create_with_resource_selector, additional_resource_accordion_selector, \
+    cfg_scale_input_selector, sampler_input_selector, sampler_option_selector_prefix, sampler_option_selector_suffix, \
+    steps_input_selector
 from core.model import Prompt, Resource
 from .browser_manager import BrowserManager
 import logging
@@ -24,8 +27,8 @@ class PromptInjector:
     async def add_resource_by_page_url(self, page_url: str):
         logger.debug(WAIT_PREFIX + "add_resource_by_page_url: " + page_url)
         await self.browser_manager.init_page(page_url)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=INTERACTION_TIMEOUT)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
+        await self.browser_manager.page.locator(create_with_resource_selector).wait_for(timeout=INTERACTION_TIMEOUT)
+        await self.browser_manager.page.locator(create_with_resource_selector).click()
         await self.browser_manager.enter_generation_perspective()
         logger.debug(DONE_PREFIX + "add_resource_by_page_url: " + page_url)
 
@@ -33,21 +36,19 @@ class PromptInjector:
         logger.debug(WAIT_PREFIX + "add_resource_by_hash: " + resource_hash)
         await self.browser_manager.page.locator(model_search_input_selector).fill(resource_hash)
         await self.browser_manager.page.locator(resource_option_selector).first.click(force=True)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').wait_for(timeout=INTERACTION_TIMEOUT)
-        await self.browser_manager.page.locator('button[data-activity="create:model"]').click()
+        await self.browser_manager.page.locator(create_with_resource_selector).wait_for(timeout=INTERACTION_TIMEOUT)
+        await self.browser_manager.page.locator(create_with_resource_selector).click()
         await self.browser_manager.enter_generation_perspective()
         logger.debug(DONE_PREFIX + "add_resource_by_hash: " + resource_hash)
 
-    async def open_additional_resources_accordion(self, ):
+    async def open_additional_resources_accordion(self):
         logger.debug(WAIT_PREFIX + "open_additional_resources_accordion")
-        await self.browser_manager.page.locator("//*[text()='Additional Resources']").click()
+        await self.browser_manager.page.locator(additional_resource_accordion_selector).click()
         logger.debug(DONE_PREFIX + "open_additional_resources_accordion")
 
     async def set_lora_weight(self, lora_weight: float):
         logger.debug(WAIT_PREFIX + "set_lora_weight: " + str(lora_weight))
-        await self.browser_manager.page.locator(
-            "(//*[div/div/div/div/text()='Additional Resources']/following-sibling::*//input[@type][@max][@min][@step][@inputmode])[1]").fill(
-            str(lora_weight))
+        await self.browser_manager.page.locator(lora_weight_selector).fill(str(lora_weight))
         logger.debug(DONE_PREFIX + "set_lora_weight: " + str(lora_weight))
 
     async def write_positive_prompt(self, positive_text_prompt: str):
@@ -73,22 +74,22 @@ class PromptInjector:
 
     async def set_cfg_scale(self, cfg_scale: float):
         async def interact():
-            await self.browser_manager.page.locator("#input_cfgScale-label + div > :nth-child(2) input").wait_for(
+            await self.browser_manager.page.locator(cfg_scale_input_selector).wait_for(
                 timeout=INTERACTION_TIMEOUT)
-            await self.browser_manager.page.locator("#input_cfgScale-label + div > :nth-child(2) input").fill(str(cfg_scale))
+            await self.browser_manager.page.locator(cfg_scale_input_selector).fill(str(cfg_scale))
 
         await try_action('set_cfg_scale: ' + str(cfg_scale), interact)
 
     async def set_sampler(self, sampler: str):
         logger.debug(WAIT_PREFIX + "set_sampler: " + sampler)
-        await self.browser_manager.page.locator("#input_sampler").click()
-        await self.browser_manager.page.locator(
-            "//div[@role='combobox']/following-sibling::div//div[text()='" + sampler + "']").click()
+        await self.browser_manager.page.locator(sampler_input_selector).click()
+        sampler_option_selector: str = sampler_option_selector_prefix + sampler + sampler_option_selector_suffix
+        await self.browser_manager.page.locator(sampler_option_selector).click()
         logger.debug(DONE_PREFIX + "set_sampler: " + sampler)
 
     async def set_steps(self, steps: int):
         logger.debug(WAIT_PREFIX + "set_steps: " + str(steps))
-        await self.browser_manager.page.locator("#input_steps-label + div > :nth-child(2) input").fill(str(steps))
+        await self.browser_manager.page.locator(steps_input_selector).fill(str(steps))
         logger.debug(DONE_PREFIX + "set_steps: " + str(steps))
 
     async def set_seed(self, seed: str):

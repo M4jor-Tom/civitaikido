@@ -28,7 +28,5 @@ async def skip_getting_started(page: Page):
     await try_action("skip_getting_started", interact)
 
 async def confirm_start_generating_yellow_button(page: Page):
-    logger.debug(WAIT_PREFIX + "confirm_start_generating_yellow_button")
     await click_if_visible("confirm_start_generating_yellow_button",
                            page.get_by_role("button", name="I Confirm, Start Generating"))
-    logger.debug(DONE_PREFIX + "confirm_start_generating_yellow_button")

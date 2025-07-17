@@ -1,7 +1,7 @@
 from core.constant import generation_info_button_selector, creator_tip_selector, civitai_tip_selector, \
     no_more_buzz_triangle_svg_selector, \
     generation_button_selector, all_jobs_done_selector, WAIT_PREFIX, DONE_PREFIX, claim_buzz_button_selector, \
-    generation_quantity_input_selector
+    generation_quantity_input_selector, close_buy_buzz_popup_selector
 import logging
 import asyncio
 
@@ -35,14 +35,15 @@ class ImageGenerator:
         logger.debug(DONE_PREFIX + "generate_all_possible")
 
     async def claim_buzz(self):
-        logger.debug(WAIT_PREFIX + "claim_buzz")
         await click_if_visible("claim_buzz", self.browser_manager.page.locator(claim_buzz_button_selector))
-        logger.debug(DONE_PREFIX + "claim_buzz")
 
     async def set_input_quantity(self):
         logger.debug(WAIT_PREFIX + "set_input_quantity")
         await self.browser_manager.page.locator(generation_quantity_input_selector).fill("4")
         logger.debug(DONE_PREFIX + "set_input_quantity")
+
+    async def close_buy_buzz_popup(self):
+        await click_if_visible("close_buy_buzz_popup", self.browser_manager.page.locator(close_buy_buzz_popup_selector))
 
     async def launch_generations_batch(self):
         logger.debug(WAIT_PREFIX + "launch_all_generations")
@@ -58,4 +59,5 @@ class ImageGenerator:
                 await self.browser_manager.page.locator(generation_button_selector).wait_for(timeout=INTERACTION_TIMEOUT)
                 await self.browser_manager.page.locator(generation_button_selector).click()
                 await asyncio.sleep(3)
+        await self.close_buy_buzz_popup()
         logger.debug(DONE_PREFIX + "launch_generations_batch")

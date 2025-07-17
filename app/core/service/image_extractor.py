@@ -3,7 +3,7 @@ import os
 from urllib.parse import urlparse
 import logging
 
-from core.constant import images_selector, all_jobs_done_selector, DONE_PREFIX
+from core.constant import images_selector, all_jobs_done_selector, DONE_PREFIX, WAIT_PREFIX
 from . import BrowserManager
 from core.util import enter_feed_view
 from ..config import IMAGES_GENERATION_TIMEOUT
@@ -18,6 +18,7 @@ class ImageExtractor:
         self.browser_manager = browser_manager
 
     async def save_images_from_page(self, output_dir_in_home: str) -> None:
+        logger.debug(WAIT_PREFIX + "save_images_from_page")
         """Save all image files from a web page using Playwright.
 
         Args:
@@ -44,3 +45,4 @@ class ImageExtractor:
             with open(filepath, "wb") as f:
                 f.write(response.content)
             logger.info(DONE_PREFIX + f"Saved: {filepath}")
+        logger.debug(DONE_PREFIX + "save_images_from_page")
