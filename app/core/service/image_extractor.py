@@ -36,14 +36,11 @@ class ImageExtractor:
             # Make sure to handle relative URLs
             # img_url = urljoin(url, src)
             img_url = src
-            try:
-                response = requests.get(img_url)
-                response.raise_for_status()
-                # Extract a filename from the URL or fallback to index
-                filename = os.path.basename(urlparse(img_url).path) or f"image_{i}.jpg"
-                filepath = os.path.join(output_dir, filename)
-                with open(filepath, "wb") as f:
-                    f.write(response.content)
-                logger.info(DONE_PREFIX + f"Saved: {filepath}")
-            except Exception as e:
-                logger.error(f"Failed to download {img_url}: {e}")
+            response = requests.get(img_url)
+            response.raise_for_status()
+            # Extract a filename from the URL or fallback to index
+            filename = os.path.basename(urlparse(img_url).path) or f"image_{i}.jpg"
+            filepath = os.path.join(output_dir, filename)
+            with open(filepath, "wb") as f:
+                f.write(response.content)
+            logger.info(DONE_PREFIX + f"Saved: {filepath}")
